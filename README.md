@@ -9,5 +9,5 @@ Installation
 ------------
 To use this package, from R run the following commands:
 ```python
-    pip install git+https://github.com/mattpontifex/eegpipe.git#egg=eegpipe 
+    pip install git+git://github.com/mattpontifex/eegpipe.git
 ```
