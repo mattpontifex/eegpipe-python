@@ -90,15 +90,42 @@ Error of Omission stimulus events are increased by 60,000 (i.e., type 27 would b
     eegpipe.writeeegtofile(EEG, 'file.csv')
 ```
 
-* **eeglabstructure**: Python class that mimics the structure of the EEG variable in EEGLAB.
-```python
-    EEG = eegpipe.eeglabstructure()
-```
-
 * **simplemerge**: Function that merges data together.
 ```python
     EEG = eegpipe.simplemerge(EEG1, EEG2)
 ```
+
+* **eeglabstructure**: Python class that mimics the structure of the EEG variable in EEGLAB.
+```python
+    EEG = eegpipe.eeglabstructure()
+```
+The data structure is as follows:  
+EEG.filename - string filename.  
+EEG.filepath - string filepath.  
+EEG.data - data is stored as lists. The first index is the channel, the next index is the epoch (skipped for continous), then the point at a given time.  
+EEG.pnts - number of data points (continuous data is all data points, epoched data points is points per epoch).  
+EEG.times - list of time points.  
+EEG.freqdata - frequency data is stored as lists. The first index is the channel, the next index is the epoch (skipped for continous), then the point at a given frequency.  
+EEG.freqpnts - number of data points (continuous data is all data points, epoched data points is points per epoch).  
+EEG.frequencies - list of frequency points.  
+EEG.nbchan - integer of number of channels.  
+EEG.channels - list of channel labels.  
+EEG.trials - integer of number of epochs, 0 for continous.  
+EEG.srate - float of the samples per second.  
+EEG.events - list of events. This list mimics the layout of EEG.data. The first list is the event types at each time point. Subsequent lists include other information merged in.  
+EEG.eventsegments - list of what each index of EEG.events contains.  
+EEG.icawinv   
+EEG.icasphere   
+EEG.icaweights   
+EEG.icaact   
+EEG.reject - list of accept (0) or reject (> 0) status of each epoch.  
+EEG.stderror - standard error data is stored as lists mirroring that of EEG.data.  
+EEG.stddev - standard deviation data is stored as lists mirroring that of EEG.data.  
+EEG.acceptedtrials - integer of number of accepted epochs.  
+EEG.comments - string. 
+EEG.averef - string. 
+EEG.ref - string. 
+EEG.history - list of what has been done to the data.  
 
 
 Signal Processing Function List
@@ -145,7 +172,7 @@ artifactpolarity - specifies if the artifact is a positive going (+1) or negativ
 * **simplefilter**: Function to use scipy signal processing to filter the data for all channels.
 ```python
     # notch filter (60 hz)
-    EEG = eegpipe.simplefilter(EEG, Filter='notch', Design='butter', Cutoff=[60.0])
+    EEG = eegpipe.simplefilter(EEG, Filter='notch', Cutoff=[60.0])
     
     # bandpass filter (also works for lowpass and highpass)
     EEG = eegpipe.simplefilter(EEG, Filter='bandpass', Design='butter', Cutoff=[0.1, 30], Order=3)
