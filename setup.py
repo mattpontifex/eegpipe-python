@@ -7,13 +7,13 @@ setup(
     
     # Needed to silence warnings (and to be a worthwhile package)
     name='eegpipe',
-    url='https://github.com/mattpontifex/eegpipe',
+    url='https://github.com/mattpontifex/eegpipe-python',
     author='Matthew B. Pontifex',
     author_email='pontifex@msu.edu',
     # Needed to actually package something
     packages=['eegpipe'],
     # Needed for dependencies
-    install_requires=['numpy', 'scipy', 'matplotlib'],
+    install_requires=['numpy', 'scipy', 'pandas', 'matplotlib'],
     # *strongly* suggested for sharing
     version='0.1',
     # The license can be anything you like
