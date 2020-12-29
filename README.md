@@ -57,6 +57,7 @@ General IO Function List
 * **readUnicornBlack**: Function to read data created by Python Collect from the g.tec Unicorn Hybrid Black.
 ```python
     EEG = eegpipe.readUnicornBlack('file.csv')
+    eegpipe.plot([EEG.data[0]]) # show data from the first channel
 ```
 
 * **readEyeTribe**: Function to read data created by Python Collect from the EyeTribe.
@@ -73,6 +74,7 @@ Error of Commission response events are increased by 2190 (i.e., type 4 would be
 Error of Omission stimulus events are increased by 60,000 (i.e., type 27 would become 60,027).  
 ```python
     EEG = eegpipe.mergetaskperformance(EEG, 'file.psydat')
+    eegpipe.plot([EEG.events[0]]) # show all event codes
 ```
 
 * **saveset**: Function to save data to a file.
@@ -162,11 +164,13 @@ artifactpolarity - specifies if the artifact is a positive going (+1) or negativ
 * **extractamplitude**: Function that computes the amplitude at each channel within the given window.
 ```python
     outvector = eegpipe.extractamplitude(EEG, Window=[0.300, 0.700], Approach='mean')
+    eegpipe.plot([outvector])
 ```
 
 * **simplepsd**: Function that computes the power spectrum density. The frequencies extracted are stored in EEG.frequencies. The data is stored in EEG.freqdata. The Ceiling parameter will limit the reported data to only frequencies below the specified value.
 ```python
     EEG = eegpipe.simplepsd(EEG, Scale=500, Ceiling=30.0)
+    eegpipe.plot(EEG.freqdata[0], EEG.frequencies) # show PSD for first channel for all epochs
 ```
 
 * **simplefilter**: Function to use scipy signal processing to filter the data for all channels.
@@ -187,6 +191,10 @@ artifactpolarity - specifies if the artifact is a positive going (+1) or negativ
 * **simpleepoch**: Function that creates epochs out of continous data around the specified event types.
 ```python
     EEG = eegpipe.simpleepoch(EEG, Window=[-0.100, 1.000], Types=[10010, 10011, 10012, 10013])
+    eegpipe.plot([EEG.data[0][0]], EEG.times) # show the first channel first epoch
+    eegpipe.plot(EEG.data[0], EEG.times) # show the first channel all epochs
+    eegpipe.plot([EEG.events[0][0]], EEG.times) # show the event codes for the first epoch
+    eegpipe.plot(EEG.events[0], EEG.times) # show the event codes for all epochs
 ```
 
 * **simplebaselinecorrect**: Function centers the data in each epoch around the mean (or median) of the window period. Window=False will use the entire epoch window.
@@ -203,7 +211,7 @@ artifactpolarity - specifies if the artifact is a positive going (+1) or negativ
 with 1 for voltage threshold, 2 for voltage step, and 4 if the entire epoch contains NaN.
 ```python
     EEG = eegpipe.voltagethreshold(EEG, Threshold=[-100, 100], Step=100, NaN=True)
-    eegpipe.plot(EEG.reject)
+    eegpipe.plot([EEG.reject])
 ```
 
 * **simplezwave**: Function that computes the mean and sd over a baseline period and then z scores the entire dataset based upon that information. Optional parameter to adjust the degrees of freedom parameter for z scoring.
@@ -214,13 +222,14 @@ with 1 for voltage threshold, 2 for voltage step, and 4 if the entire epoch cont
 * **simpleaverage**: Function that averages all accepted epochs for both time series (EEG.data) and frequecy series (EEG.freqdata) data. Optional parameters to use mean vs median.
 ```python
     ERP = eegpipe.simpleaverage(EEG, Approach='mean')
+    eegpipe.plot(ERP.data, ERP.times) # show average for each channel
 ```
 
-* **inspectionwindow**: Class that allows for interactively inspecting and rejecting epochs. 
+* **inspectionwindow**: Class that allows for interactively inspecting and rejecting epochs. When multiple channels are provided for a channel list they are averaged together for display purposes. 
 ```python
-    inspectwin = eegpipe.inspectionwindow()
-    inspectwin.inspect(EEG, chanlist1=['C1', 'CZ', 'C2'], chanlist2=['PZ'])
-    eegpipe.plot(EEG.reject)
+    %matplotlib qt
+    inspectwin = eegpipe.inspectionwindow(); inspectwin.inspect(EEG, chanlist1=['CP1', 'CPZ', 'CP2'], chanlist2=['PZ'])
+    eegpipe.plot([EEG.reject])
 ```
 
 
