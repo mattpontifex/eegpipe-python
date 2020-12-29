@@ -2,25 +2,20 @@
 # Authors: Matthew B. Pontifex <pontifex@msu.edu>
 
 import os
-import sys
 import string
 import math
-import time
 import numpy
 numpy.seterr(divide='ignore', invalid='ignore')
-import codecs
 import pickle
 import pandas
 import datetime
 import copy 
 import matplotlib.mlab as mlab
 import scipy.signal
-#import neurokit2
 import matplotlib
 import matplotlib.pyplot
 import matplotlib.animation
 from matplotlib.widgets import Button
-import matplotlib.ticker as ticker
 from scipy.stats import pearsonr
 
 #pip install git+git://github.com/tknapen/FIRDeconvolution.git
@@ -31,20 +26,20 @@ from lmfit import minimize, Parameters
 import peakutils
 from peakutils.plot import plot as peakutilspplot
 
-import neurokit2
+#import neurokit2
 
 #https://github.com/neuropsychology/NeuroKit
 #pip install neurokit2
 #pip install mne
 
-from IPython import embed as shell
+#from IPython import embed as shell
 
 # %matplotlib inline
 #%matplotlib qt
 
 
 def version():
-    print('eegpipe toolbox version 0.1, updated 2020-12-11')
+    print('eegpipe toolbox version 0.1, updated 2020-12-29')
     # 0.1
 
 
@@ -638,7 +633,9 @@ def correctEyeTribe(EEG, Correction=False):
         OUTEEG.data[chanindex] = numpy.multiply(numpy.array(OUTEEG.data[chanindex]), Correction[1])
         # add the model intercept in
         OUTEEG.data[chanindex] = numpy.add(numpy.array(OUTEEG.data[chanindex]), Correction[2])
-    
+        # scale to micrometers
+        OUTEEG.data[chanindex] = numpy.multiply(OUTEEG.data[chanindex], 1000.0) 
+        
     
     return OUTEEG
 
@@ -790,15 +787,28 @@ def mergetaskperformance(EEG, filein):
                                 # Correct Response are 2500
                                 # Error of Commission Resonse are 3500
                                 if currentline[labline.index('Resp')] != 'nan':
-                                    # RT in ms / 1000 times the sample rate gives you the number of samples
-                                    backsample = int(numpy.floor(numpy.multiply(numpy.divide(float(currentline[labline.index('Latency')]),1000), float(OUTEEG.srate))))
-                                    
-                                    if float(currentline[labline.index('Correct')]) == float(1.0):
-                                        OUTEEG.events[0][sampleindex+backsample] = float(2500.0)
-                                    else:
-                                        OUTEEG.events[0][sampleindex+backsample] = float(3500.0)
-                                    OUTEEG.events[OUTEEG.eventsegments.index('Event')][sampleindex+backsample] = 'Response'
-                                    OUTEEG.events[OUTEEG.eventsegments.index('Trial')][sampleindex+backsample] = float(currentline[labline.index('Trial')])
+                                    if currentline[labline.index('Latency')] != 'nan':
+                                        
+                                        # RT in ms / 1000 times the sample rate gives you the number of samples
+                                        backsample = int(numpy.floor(numpy.multiply(numpy.divide(float(currentline[labline.index('Latency')]),1000), float(OUTEEG.srate))))
+                                        boolnumeric = True
+                                        try:
+                                            float(currentline[labline.index('Resp')])
+                                        except:
+                                            boolnumeric = False
+                                        
+                                        if float(currentline[labline.index('Correct')]) == float(1.0):
+                                            if boolnumeric:
+                                                OUTEEG.events[0][sampleindex+backsample] = numpy.add(float(currentline[labline.index('Resp')]), float(1190.0))
+                                            else:
+                                                OUTEEG.events[0][sampleindex+backsample] = float(2500.0)
+                                        else:
+                                            if boolnumeric:
+                                                OUTEEG.events[0][sampleindex+backsample] = numpy.add(float(currentline[labline.index('Resp')]), float(1290.0))
+                                            else:
+                                                OUTEEG.events[0][sampleindex+backsample] = float(3500.0)
+                                        OUTEEG.events[OUTEEG.eventsegments.index('Event')][sampleindex+backsample] = 'Response'
+                                        OUTEEG.events[OUTEEG.eventsegments.index('Trial')][sampleindex+backsample] = float(currentline[labline.index('Trial')])
                                     
                                 # increment events to next mark
                                 currenteventplace = currenteventplace + 1
@@ -832,8 +842,8 @@ def extractamplitude(EEG, Window=False, Approach=False):
     Approach = checkdefaultsettings(Approach, ['median', 'mean'])
     
     if Window != False:
-        startindex = numpy.argmin(abs(numpy.subtract(EEG.times,numpy.divide(float(Window[0]),1000))))
-        stopindex = numpy.argmin(abs(numpy.subtract(EEG.times,numpy.divide(float(Window[1]),1000))))
+        startindex = numpy.argmin(abs(numpy.subtract(EEG.times,numpy.divide(float(Window[0]),1))))
+        stopindex = numpy.argmin(abs(numpy.subtract(EEG.times,numpy.divide(float(Window[1]),1))))
     else:
         startindex = 0
         stopindex = len(EEG.times)
@@ -1240,9 +1250,9 @@ def simpleepoch(EEG, Window=False, Types=False):
     if Window != False:
         
         # figure out how big the span needs to be
-        epochsamples = int(numpy.floor(numpy.multiply(numpy.divide(numpy.subtract(float(Window[1]),float(Window[0])),float(1000.0)),OUTEEG.srate)))
-        OUTEEG.times = numpy.arange(numpy.divide(Window[0],1000.0), numpy.divide(Window[1],1000.0),numpy.divide(1.0,OUTEEG.srate))
-        epochindexmin = numpy.multiply(numpy.divide(Window[0],1000.0), OUTEEG.srate)
+        epochsamples = int(numpy.floor(numpy.multiply(numpy.divide(numpy.subtract(float(Window[1]),float(Window[0])),float(1.0)),OUTEEG.srate)))
+        OUTEEG.times = numpy.arange(numpy.divide(Window[0],1.0), numpy.divide(Window[1],1.0),numpy.divide(1.0,OUTEEG.srate))
+        epochindexmin = numpy.multiply(numpy.divide(Window[0],1.0), OUTEEG.srate)
         
         # epoch data
         epochs = []
@@ -1398,8 +1408,8 @@ def simplezwave(EEG, BaselineWindow=False, ddof=1):
     if OUTEEG.trials > 0:
         
         if BaselineWindow != False:
-            startindex = numpy.argmin(abs(numpy.subtract(EEG.times,numpy.divide(float(BaselineWindow[0]),1000))))
-            stopindex = numpy.argmin(abs(numpy.subtract(EEG.times,numpy.divide(float(BaselineWindow[1]),1000))))
+            startindex = numpy.argmin(abs(numpy.subtract(EEG.times,numpy.divide(float(BaselineWindow[0]),1))))
+            stopindex = numpy.argmin(abs(numpy.subtract(EEG.times,numpy.divide(float(BaselineWindow[1]),1))))
         else:
             startindex = 0
             stopindex = len(EEG.times)
@@ -1454,8 +1464,8 @@ def simpleaverage(EEG, Approach=False, BaselineWindow=False):
     OUTEEG.acceptedtrials = len([v for i,v in enumerate(EEG.reject) if v == 0])
     
     if BaselineWindow != False:
-        startindex = numpy.argmin(abs(numpy.subtract(EEG.times,numpy.divide(float(BaselineWindow[0]),1000))))
-        stopindex = numpy.argmin(abs(numpy.subtract(EEG.times,numpy.divide(float(BaselineWindow[1]),1000))))
+        startindex = numpy.argmin(abs(numpy.subtract(EEG.times,numpy.divide(float(BaselineWindow[0]),1))))
+        stopindex = numpy.argmin(abs(numpy.subtract(EEG.times,numpy.divide(float(BaselineWindow[1]),1))))
         
         for cC in range(EEG.nbchan):
             if Approach == 'mean':
@@ -1504,8 +1514,8 @@ def simplebaselinecorrect(EEG, Window=False, Approach=False):
                         OUTEEG.data[cC][cE] = numpy.subtract(EEG.data[cC][cE], numpy.nanmedian(EEG.data[cC][cE]))
                     
             else:
-                startindex = numpy.argmin(abs(numpy.subtract(EEG.times,numpy.divide(float(Window[0]),1000))))
-                stopindex = numpy.argmin(abs(numpy.subtract(EEG.times,numpy.divide(float(Window[1]),1000))))
+                startindex = numpy.argmin(abs(numpy.subtract(EEG.times,numpy.divide(float(Window[0]),1))))
+                stopindex = numpy.argmin(abs(numpy.subtract(EEG.times,numpy.divide(float(Window[1]),1))))
                 
                 nans, x= numpy.isnan(EEG.data[cC][cE][startindex:stopindex]), lambda z: z.nonzero()[0]
                 if sum(nans) < len(EEG.data[cC][cE][startindex:stopindex]):
@@ -1536,7 +1546,9 @@ def EyeTribetousable(EEG, Threshold=False, Interval=False, Overlap=False, Peaksp
         Overlap = 0.5
     if float(Overlap) > float(1.0):
         Overlap = 0.5
-    Overlap = float(Overlap)
+    if float(Overlap) < float(0.0):
+        Overlap = 0.5
+    Overlap = numpy.subtract(1.0, float(Overlap)) # so that 0.75 percent overlap shifts by 0.25 percent each loop
     
     if Peakspacing == False:
         Peakspacing = 1
@@ -2194,7 +2206,7 @@ class inspectionwindow:
         #matplotlib.pyplot.close()
         bolerr = 1 
 
-def writeepochstofile(EEG, fileout):
+def writeeegtofile(EEG, fileout):
     OUTEEG = copy.deepcopy(EEG)
     
     f = open(fileout, 'w') # Write to file - Any original file is overwritten
@@ -2220,89 +2232,36 @@ def writeepochstofile(EEG, fileout):
         f.write('%s' % OUTEEG.channels[i])
         if (i < OUTEEG.nbchan-1): f.write(', ')
     f.write('\n')
-    for cE in range(OUTEEG.trials):
+    if OUTEEG.trials > 0:
+        for cE in range(OUTEEG.trials):
+            for cT in range(OUTEEG.pnts):
+                
+                # Event   Time    Markers   Reject  Channel
+                f.write('%d, ' % (cE+1)) # event
+                f.write('%f, ' % (OUTEEG.times[cT])) # time
+                f.write('%0.1f, ' % (OUTEEG.events[0][cE][cT])) # markers
+                f.write('%0.1f, ' % (OUTEEG.reject[cE])) # reject
+                for cChan in range(OUTEEG.nbchan):
+                    f.write('%f' % (OUTEEG.data[cChan][cE][cT])) # channel
+                    if (cChan < OUTEEG.nbchan-1): f.write(', ')
+                f.write('\n')
+    else:
+    
         for cT in range(OUTEEG.pnts):
-            
             # Event   Time    Markers   Reject  Channel
-            f.write('%d, ' % (cE+1)) # event
+            f.write('%d, ' % (0)) # event
             f.write('%f, ' % (OUTEEG.times[cT])) # time
-            f.write('%0.1f, ' % (OUTEEG.events[0][cE][cT])) # markers
-            f.write('%0.1f, ' % (OUTEEG.reject[cE])) # reject
+            f.write('%0.1f, ' % (OUTEEG.events[0][cT])) # markers
+            f.write('%0.1f, ' % (0)) # reject
             for cChan in range(OUTEEG.nbchan):
-                f.write('%f' % (OUTEEG.data[cChan][cE][cT])) # channel
+                f.write('%f' % (OUTEEG.data[cChan][cT])) # channel
                 if (cChan < OUTEEG.nbchan-1): f.write(', ')
             f.write('\n')
-    
     f.close()
-    
     
     
 # # # # #
 # DEBUG #
 if __name__ == "__main__":
     
-    # notes
-    # Can Read in Unicorn Data
-    # Can Merge Behavior and Recode Trial Type Codes based on accuracy
-    # Can Save and Load the EEG structure
-    # Filter is ready
-    # PSD is ready
-    # Epoch Based on Trial Types is ready
-    # Baseline Correct is ready
-    # Create Averages is ready
-    # Transform to Z score based on activity within specified period is ready
-    # Merge multiple files together is ready
-    
-    
-    
-    # Still need to build
-    
-     
-    # Detect Artifacts
-    # Assess Noise
-    # Collapse Electrodes
-    # Remove Bad Electrodes
-    # interchannel relationships - detect deviant channel? - convolution?
-    
-    
-    # Build a report output
-    # Headplot of topography and waveform
-    # Two headplots and two waveforms? 
-    # Optional behavioral report as well? What would that look like?
-    
-    # 3 column format:
-    # Headplot 1 - Headplot 2 - Waveform
-    # RT - Accuracy - Score
-    #https://www.google.com/url?sa=i&url=https%3A%2F%2Fimpactconcussion.com%2Fnew-to-impact%2F&psig=AOvVaw1yahXDfbkqAKGV7d32RNep&ust=1609206369342000&source=images&cd=vfe&ved=0CAIQjRxqFwoTCKiIloLH7-0CFQAAAAAdAAAAABAZ
-    
-
-    
-    
-    EEG = readUnicornBlack('/Users/mattpontifex/Downloads/testdata/VEPEmerson.csv')
-    
-    EEG = simplefilter(EEG, Filter='Notch', Cutoff=[60.0])
-    EEG = simplefilter(EEG, Filter='Bandpass', Design='Butter', Cutoff=[1,25], Order=3)
-    
-    #tempmat = numpy.vstack(EEG.data[0])
-    #plot([tempmat.transpose()])
-    
-    # see what events are available
-    #[v for i,v in enumerate(EEG.events[0]) if v > 0]
-    
-    
-    #EEG = simpleepoch(EEG, Window = [-200.0, 600.0], Types = [10005, 10006])
-    #EEG = simplebaselinecorrect(EEG, Window = [-100.0, 0.0])
-    #EEG = voltagethreshold(EEG, Threshold = [-100.0, 100.0], Step = 50.0)
-    #EEG = simplepsd(EEG, Scale = 500, Ceiling = 30.0)
-    #EEG = simplefilter(EEG, Design = 'savitzky-golay', Order = 4)
-    #EEG = simplezwave(EEG, BaselineWindow = [-200.0, 0.0])
-    #EEG = simpleaverage(EEG, Approach = 'Mean', BaselineWindow = [-100, 0])
-    #saveset(EEG, task.outputfile)
-    
-    #plot(EEG.data,EEG.times)
-    
-    #Visualinspect = inspectionwindow()
-    
-    #Visualinspect.inspect(EEG, chanlist1=['C3', 'CZ', 'C4', 'PZ'], chanlist2=False)
-
-    #EEG = simplepsd(EEG, Scale = 500, Ceiling = 30.0)
+    A = 1
