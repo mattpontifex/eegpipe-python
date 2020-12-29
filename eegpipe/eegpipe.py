@@ -801,12 +801,12 @@ def mergetaskperformance(EEG, filein):
                                             if boolnumeric:
                                                 OUTEEG.events[0][sampleindex+backsample] = numpy.add(float(currentline[labline.index('Resp')]), float(1190.0))
                                             else:
-                                                OUTEEG.events[0][sampleindex+backsample] = float(2500.0)
+                                                OUTEEG.events[0][sampleindex+backsample] = float(1191.0)
                                         else:
                                             if boolnumeric:
-                                                OUTEEG.events[0][sampleindex+backsample] = numpy.add(float(currentline[labline.index('Resp')]), float(1290.0))
+                                                OUTEEG.events[0][sampleindex+backsample] = numpy.add(float(currentline[labline.index('Resp')]), float(2190.0))
                                             else:
-                                                OUTEEG.events[0][sampleindex+backsample] = float(3500.0)
+                                                OUTEEG.events[0][sampleindex+backsample] = float(2191.0)
                                         OUTEEG.events[OUTEEG.eventsegments.index('Event')][sampleindex+backsample] = 'Response'
                                         OUTEEG.events[OUTEEG.eventsegments.index('Trial')][sampleindex+backsample] = float(currentline[labline.index('Trial')])
                                     
@@ -1426,7 +1426,7 @@ def simplezwave(EEG, BaselineWindow=False, ddof=1):
         
     return OUTEEG
 
-def simpleaverage(EEG, Approach=False, BaselineWindow=False):
+def simpleaverage(EEG, Approach=False):
     
     Approach = checkdefaultsettings(Approach, ['median', 'mean'])
     
@@ -1462,16 +1462,6 @@ def simpleaverage(EEG, Approach=False, BaselineWindow=False):
     OUTEEG.samples = []
     OUTEEG.trials = 0
     OUTEEG.acceptedtrials = len([v for i,v in enumerate(EEG.reject) if v == 0])
-    
-    if BaselineWindow != False:
-        startindex = numpy.argmin(abs(numpy.subtract(EEG.times,numpy.divide(float(BaselineWindow[0]),1))))
-        stopindex = numpy.argmin(abs(numpy.subtract(EEG.times,numpy.divide(float(BaselineWindow[1]),1))))
-        
-        for cC in range(EEG.nbchan):
-            if Approach == 'mean':
-                OUTEEG.data[cC] = numpy.subtract(OUTEEG.data[cC], numpy.nanmean(OUTEEG.data[cC][startindex:stopindex]))
-            elif Approach == 'median':
-                OUTEEG.data[cC] = numpy.subtract(OUTEEG.data[cC], numpy.nanmedian(OUTEEG.data[cC][startindex:stopindex]))
     
     # check and see if there is frequency data that we should average
     if len(EEG.freqdata) > 0:
@@ -1657,6 +1647,7 @@ def catcheyeblinks(EEG, Threshold=False, Interpolate=True):
             OUTEEG.missingdata.append(currentcchannel)
             
     return OUTEEG
+
 
 
 class inspectionwindow:
@@ -1899,10 +1890,10 @@ class inspectionwindow:
         self.xtime = self.EEG.times;
         
         if self.xscale == False:
-            self.xscale = [numpy.multiply(self.EEG.times[0],1000), numpy.multiply(self.EEG.times[-1],1000)]
+            self.xscale = [numpy.multiply(self.EEG.times[0],1), numpy.multiply(self.EEG.times[-1],1)]
        
         for tobj in [self.pltax11, self.pltax12, self.pltax13, self.pltax14, self.pltax21, self.pltax22, self.pltax23, self.pltax24, self.pltax31, self.pltax32, self.pltax33, self.pltax34]:
-            tobj.set_xlim([numpy.divide(float(self.xscale[0]),1000), numpy.divide(float(self.xscale[1]),1000)])
+            tobj.set_xlim([numpy.divide(float(self.xscale[0]),1), numpy.divide(float(self.xscale[1]),1)])
             
         #self.xtimeticks = numpy.linspace(1,int(math.floor(self.rollingspan-1)),int(self.rollingspan-1)).tolist()
         #self.xtimeticks = [int(i) for i in self.xtimeticks] 
@@ -1910,8 +1901,8 @@ class inspectionwindow:
         #self.pltax11.set_ylim([0, (self.numberOfAcquiredChannels+1)*self.timeplotoffsetscale])
         
         
-        startindex = numpy.argmin(abs(numpy.subtract(self.EEG.times,numpy.divide(float(self.xscale[0]),1000))))
-        stopindex = numpy.argmin(abs(numpy.subtract(self.EEG.times,numpy.divide(float(self.xscale[1]),1000))))
+        startindex = numpy.argmin(abs(numpy.subtract(self.EEG.times,numpy.divide(float(self.xscale[0]),1))))
+        stopindex = numpy.argmin(abs(numpy.subtract(self.EEG.times,numpy.divide(float(self.xscale[1]),1))))
         self.xtime = self.xtime[startindex:stopindex]
         
         # populate initial links for the trials
@@ -2264,4 +2255,41 @@ def writeeegtofile(EEG, fileout):
 # DEBUG #
 if __name__ == "__main__":
     
-    A = 1
+    
+    EEG = eeglabstructure()
+    
+    basedate = pandas.to_datetime('2020-12-29 00:00:20')
+    comparisondate = pandas.to_datetime('2020-12-29 00:01:20')
+    timevvalue = msdatefromref(basedate, comparisondate)
+    
+    textvalue = 'Mean'
+    textvalue = checkdefaultsettings(textvalue, ['median', 'mean'])
+    
+    
+    
+    
+    # Still need to build
+    
+     
+    # Detect Artifacts
+    # Assess Noise
+    # Collapse Electrodes
+    # Remove Bad Electrodes
+    # interchannel relationships - detect deviant channel? - convolution?
+    
+    
+    # Build a report output
+    # Headplot of topography and waveform
+    # Two headplots and two waveforms? 
+    # Optional behavioral report as well? What would that look like?
+    
+    # 3 column format:
+    # Headplot 1 - Headplot 2 - Waveform
+    # RT - Accuracy - Score
+    #https://www.google.com/url?sa=i&url=https%3A%2F%2Fimpactconcussion.com%2Fnew-to-impact%2F&psig=AOvVaw1yahXDfbkqAKGV7d32RNep&ust=1609206369342000&source=images&cd=vfe&ved=0CAIQjRxqFwoTCKiIloLH7-0CFQAAAAAdAAAAABAZ
+    
+    #https://mne.tools/stable/auto_examples/visualization/plot_evoked_topomap.html#sphx-glr-auto-examples-visualization-plot-evoked-topomap-py
+    
+    #https://mne.tools/stable/auto_examples/visualization/plot_eeglab_head_sphere.html#sphx-glr-auto-examples-visualization-plot-eeglab-head-sphere-py
+    
+    
