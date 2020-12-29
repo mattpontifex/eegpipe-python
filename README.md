@@ -122,9 +122,9 @@ EEG.reject - list of accept (0) or reject (> 0) status of each epoch.
 EEG.stderror - standard error data is stored as lists mirroring that of EEG.data.  
 EEG.stddev - standard deviation data is stored as lists mirroring that of EEG.data.  
 EEG.acceptedtrials - integer of number of accepted epochs.  
-EEG.comments - string. 
-EEG.averef - string. 
-EEG.ref - string. 
+EEG.comments - string.   
+EEG.averef - string.   
+EEG.ref - string.   
 EEG.history - list of what has been done to the data.  
 
 
