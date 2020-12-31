@@ -51,6 +51,38 @@ Helpful for requesting times when the sampling rate may not perfectly align with
     # timevalue returns 44194.000231481485
 ```
 
+* **crushparula**: Function that creates a parula/viridis like colormap with an expanded yellow segment.
+```python
+    cmap = eegpipe.crushparula(256)
+```
+
+* **crushcolormap**: Function that will crush/expand segments of a colormap. The ratio option will split the colormap into segments based upon the length
+of the list (3 elements splits the list into thirds) and then will expand that section based upon the value (0.5 will compress the segment by half, 
+1 retains that segment as is, 2 will double the size of the segment).
+```python
+    cmap = eegpipe.crushcolormap(cmap='viridis', ratio=[1, 2, 4], outsize=256)
+```
+
+* **eggheadplot**: Function that will create a topographic plot using label matching on a stylized head. The style can be 'Full' or 'Outline'. To plot multiple eggheads simply provide a list of lists for the Channels, Amplitude, and Titles.
+```python
+    # plot a single egghead
+    Channels = ['FPZ', 'F3', 'FZ', 'F4', 'T7', 'C3', 'CZ', 'C4', 'T8', 'P7', 'P3', 'PZ', 'P4', 'P8', 'OZ']
+    Amplitude = [0, 3, 3, 1, 0, 8, 5, 4, 0, 2, 8, 9, 2, 2, 0]
+    eegpipe.eggheadplot(Channels, Amplitude, Scale = [1, 9], TickValues=[2,8], Steps = 256, Style='Full', BrainOpacity = 0.2, Title ='Egghead', Colormap=False)
+    
+    # plot multiple eggheads
+    Channels1 = ['FPZ', 'F3', 'FZ', 'F4', 'T7', 'C3', 'CZ', 'C4', 'T8', 'P7', 'P3', 'PZ', 'P4', 'P8', 'OZ']
+    Amplitude1 = [0, 3, 3, 1, 0, 8, 5, 4, 0, 2, 8, 9, 2, 2, 0]
+    Title1 = 'Egghead 1'
+    Channels2 = ['FPZ', 'F3', 'FZ', 'F4', 'T7', 'C3', 'CZ', 'C4', 'T8', 'P7', 'P3', 'PZ', 'P4', 'P8', 'OZ']
+    Amplitude2 = [0, 4, 4, 2, 0, 6, 6, 6, 0, 2, 7, 9, 9, 3, 0] 
+    Title2 = 'Egghead 2'  
+    Channels = [Channels1, Channels2]; Amplitudes = [Amplitude1, Amplitude2]; Titles = [Title1, Title2]
+    eegpipe.eggheadplot(Channels, Amplitudes, Scale = [1, 9], TickValues=False, Steps = 256, Style='Full', BrainOpacity = 0.2, Title =Titles, Colormap=False)
+```
+
+
+
 
 General IO Function List
 ------------
