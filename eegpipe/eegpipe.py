@@ -2,6 +2,7 @@
 # Authors: Matthew B. Pontifex <pontifex@msu.edu>
 
 import os
+import copy 
 import string
 import math
 import numpy
@@ -9,14 +10,19 @@ numpy.seterr(divide='ignore', invalid='ignore')
 import pickle
 import pandas
 import datetime
-import copy 
-import matplotlib.mlab as mlab
+import scipy
 import scipy.signal
+import scipy.interpolate
+from scipy.stats import pearsonr
+from scipy import ndimage
 import matplotlib
 import matplotlib.pyplot
 import matplotlib.animation
+import matplotlib.image
+import matplotlib.colors
+import matplotlib.mlab as mlab
+from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 from matplotlib.widgets import Button
-from scipy.stats import pearsonr
 
 #pip install git+git://github.com/tknapen/FIRDeconvolution.git
 from fir.FIRDeconvolution import FIRDeconvolution
@@ -42,6 +48,287 @@ def version():
     print('eegpipe toolbox version 0.1, updated 2020-12-29')
     # 0.1
 
+
+
+
+def fill(data, invalid=None):
+    """
+    Replace the value of invalid 'data' cells (indicated by 'invalid') 
+    by the value of the nearest valid data cell
+
+    Input:
+        data:    numpy array of any dimension
+        invalid: a binary array of same shape as 'data'. True cells set where data
+                 value should be replaced.
+                 If None (default), use: invalid  = np.isnan(data)
+
+    Output: 
+        Return a filled array. 
+    """
+    #import numpy as np
+    #import scipy.ndimage as nd
+
+    if invalid is None: invalid = numpy.isnan(data)
+
+    ind = ndimage.distance_transform_edt(invalid, return_distances=False, return_indices=True)
+    return data[tuple(ind)]
+
+
+    
+def crushcolormap(cmap=False, ratio=False, outsize=False):
+    if cmap == False:
+        cmap = 'viridis'
+        
+    mapsize = 256
+    
+    if ratio == False:
+        ratio = [0.5,1.5,1,1,3],
+        
+    if outsize == False:
+        outsize = 512
+    
+    cmapBig = matplotlib.pyplot.cm.get_cmap(cmap, mapsize)
+    newcmap = cmapBig(numpy.linspace(0, 1, mapsize))
+    mapsplit = len(ratio)+1
+    splitpoints = numpy.linspace(0, 1, mapsplit)
+    splitsize = numpy.floor(numpy.divide(mapsize,mapsplit))
+    
+    mapcolors = []
+    for cL in range(mapsplit-1):
+    
+        seg = cmapBig(numpy.linspace(splitpoints[cL], splitpoints[cL+1], int(numpy.ceil(numpy.multiply(splitsize, ratio[cL])))))
+        if len(mapcolors) == 0:
+            mapcolors = copy.deepcopy(seg)
+        else:
+            tempseg1 = copy.deepcopy(mapcolors)
+            tempseg2 = copy.deepcopy(seg)
+            mapcolors = numpy.append(tempseg1, tempseg2, axis=0)
+        
+    #newcmap = ListedColormap(mapcolors) 
+    newcmap = LinearSegmentedColormap.from_list("", mapcolors, outsize) 
+    
+    return newcmap
+    
+
+def crushparula(mapsize=False):
+    
+    if mapsize == False:
+        mapsize = 256
+        
+    segs = ['#00004B', '#1C2C75', '#38598C', '#2B798B', '#1E9B8A', '#85D54A', '#FDE725', '#F9FB0E'] 
+    
+    newcmap = LinearSegmentedColormap.from_list("", segs, mapsize) 
+    
+    return newcmap
+    
+
+
+
+def eggheadplot(Channels, Amplitude, Steps=512, Scale=False, Colormap=False, Method='cubic', Complete=True, Style='Full', TickValues=False, BrainOpacity=0.2, Title=False, Electrodes=True, **kwargs):
+
+    Method = checkdefaultsettings(Method, ['cubic', 'linear'])
+    Style = checkdefaultsettings(Style, ['Full', 'Outline', 'None'])
+    
+    # check size 
+    multiinput = any(isinstance(el, list) for el in Channels)
+    nrow = 1;
+    ncol = 1;
+    if multiinput:
+        if len(Channels) < 4:
+            ncol = len(Channels);
+        else:
+            nrow = int(numpy.ceil(numpy.divide(len(Channels),4)))
+            ncol = 4
+        
+        fig, ax = matplotlib.pyplot.subplots(nrow,ncol)
+    else:
+        fig, ax = matplotlib.pyplot.subplots(nrow,ncol)
+    
+    fig.tight_layout()
+    #fig.patch.set_facecolor('#FFFFFF')
+    try:
+        fig.canvas.window().statusBar().setVisible(False) 
+    except:
+        pass
+    
+    if Title == False:
+        if multiinput:
+            Title = []
+            for cA in range(len(Channels)):
+                Title.append(' ')
+        else:
+            Title = ' '
+    
+    if multiinput:
+        for cA in range(len(Channels)):
+            ax[cA].set_title(Title[cA] + '\n')
+    else:
+        ax.set_title(Title)
+    
+    if Colormap == False:
+        Colormap = matplotlib.pyplot.cm.viridis
+        
+    if multiinput:
+        #for axs in ax.flat:
+        #    im = axs.imshow(numpy.random.random((10,10)), vmin=Scale[0], vmax=Scale[1])
+        cbar_ax = fig.add_axes([0.323, 0.15, 0.4, 0.035])
+    else:
+        #im = ax.imshow(numpy.random.random((10,10)), vmin=Scale[0], vmax=Scale[1])
+        pos1 = ax.get_position()
+        cbar_ax = fig.add_axes([0.323, pos1.y0-0.05, 0.4, 0.035])
+    
+    # configure ticks
+    if TickValues == False:
+        TickValues= matplotlib.ticker.AutoLocator()
+        
+    norm = matplotlib.colors.Normalize(vmin=Scale[0], vmax=Scale[1])
+    fig.colorbar(matplotlib.cm.ScalarMappable(cmap=Colormap, norm=norm), cax=cbar_ax, orientation='horizontal', ticks=TickValues)
+    
+    if multiinput:
+        for cA in range(len(Channels)):
+            eggheadplot_sub(Channels[cA], Amplitude[cA], ax[cA], Steps=Steps, Scale=Scale, Colormap=Colormap, Method=Method, Complete=Complete, Style=Style, BrainOpacity=BrainOpacity, Electrodes=Electrodes)
+    
+    else:
+        eggheadplot_sub(Channels, Amplitude, ax, Steps=Steps, Scale=Scale, Colormap=Colormap, Method=Method, Complete=Complete, Style=Style, BrainOpacity=BrainOpacity, Electrodes=Electrodes)
+        
+    matplotlib.pyplot.show()
+
+
+def eggheadplot_sub(Channels, Amplitude, ax=None, Steps=512, Scale=False, Colormap=False, Method='cubic', Complete=True, Style='Full', BrainOpacity=0.2, Electrodes=True, **kwargs):
+    
+    Method = checkdefaultsettings(Method, ['cubic', 'linear'])
+    Style = checkdefaultsettings(Style, ['Full', 'Outline', 'None'])
+    
+    matplotlib.pyplot.sca(ax)
+    ax.spines['top'].set_visible(False)
+    ax.spines['bottom'].set_visible(False)
+    ax.spines['left'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    
+    matplotlib.pyplot.tick_params(
+        axis='both',          # changes apply to the x-axis
+        which='both',      # both major and minor ticks are affected
+        left=False,      # ticks along the left edge are off
+        right=False,      # ticks along the right edge are off
+        bottom=False,      # ticks along the bottom edge are off
+        top=False,         # ticks along the top edge are off
+        labelleft=False,
+        labelbottom=False) # labels along the bottom edge are off
+    
+    #ax.patch.set_facecolor('#FFFFFF')
+    
+    
+    # figure out where the data goes
+    overallchanlabs = ['FP1','FPZ','FP2','AFP5','AFP3','AFP1','AFP2','AFP4','AFP6','AF7','AF7h','AF5','AF5h','AF3','AF1','AF1h','AFZ','AF2h','AF2','AF4','AF6h','AF6','AF8h','AF8','AFF7','AFF7h','AFF5','AFF5h','AFF3','AFF3h','AFF1h','AFF2h','AFF4h','AFF4','AFF6h','AFF6','AFF8h','AFF8','F7','F7h','F5','F5h','F3','F3h','F1','F1h','FZ','F2h','F2','F4h','F4','F6h','F6','F8h','F8','FFT7','FFT7h','FFC5','FFC5h','FFC3','FFC3h','FFC1','FFC1h','FFCZ','FFC2h','FFC2','FFC4h','FFC4','FFC6h','FFC6','FFT8h','FFT8','FT7','FT7h','FC5','FC5h','FC3','FC3h','FC1','FC1h','FCZ','FC2h','FC2','FC4h','FC4','FC6h','FC6','FT8h','FT8','FTT7','FTT7h','FCC5','FCC5h','FCC3','FCC3h','FCC1','FCC1h','FCCZ','FCC2h','FCC2','FCC4h','FCC4','FCC6h','FCC6','FTT8h','FTT8','T7','T7h','C5','C5h','C3','C3h','C1','C1h','CZ','C2h','C2','C4h','C4','C6h','C6','T8h','T8','TTP7','TTP7h','CCP5','CCP5h','CCP3','CCP3h','CCP1','CCP1h','CCPZ','CCP2h','CCP2','CCP4h','CCP4','CCP6h','CCP6','TTP8h','TTP8','TP7','TP7h','CP5','CP5h','CP3','CP3h','CP1','CP1h','CPZ','CP2h','CP2','CP4h','CP4','CP6h','CP6','TP8h','TP8','TPP7','TPP7h','CPP5','CPP5h','CPP3','CPP3h','CPP1','CPP1h','CPPZ','CPP2h','CPP2','CPP4h','CPP4','CPP6h','CPP6','TPP8h','TPP8','P7','P7h','P5','P5h','P3','P3h','P1','P1h','PZ','P2h','P2','P4h','P4','P6h','P6','P8h','P8','PPO7','PPO7h','PPO5','PPO5h','PPO3','PPO3h','PPO1','PPO1h','PPOZ','PPO2h','PPO2','PPO4h','PPO4','PPO6h','PPO6','PPO8h','PPO8','PO7','PO7h','PO5','PO5h','PO3','PO3h','PO1','POZ','PO2','PO4h','PO4','PO6h','PO6','PO8h','PO8','POO5','POO3','POO1','POOZ','POO2','POO4','POO6','O1','O1h','OZ','O2h','O2','MiPf','MiCe','MiPa','MiOc','LLPf','LLFr','LLTe','LLOc','RLPf','RLFr','RLTe','RLOc','LMPf','LDFr','LDCe','LDPa','LMOc','RMPf','RDFr','RDCe','RDPa','RMOc','LMFr','LMCe','RMFr','RMCe']
+    overallchanlabsupper = copy.deepcopy(overallchanlabs)
+    overallchanlabsupper = [x.upper() for x in overallchanlabsupper]
+    
+    overalltempxvect = [-79,-3,73,-148,-97,-42,36,91,142,-216,-182,-148,-113,-79,-57,-34,-3,28,51,73,107,142,176,210,-235,-209,-184,-150,-113,-79,-36,30,73,107,144,178,203,229,-254,-235,-216,-187,-155,-116,-79,-37,-3,31,73,110,149,182,210,230,248,-282,-256,-229,-198,-164,-126,-85,-44,-3,38,79,120,158,193,223,250,276,-309,-278,-245,-211,-178,-134,-91,-47,-3,41,86,128,172,205,238,272,303,-331,-295,-260,-224,-185,-142,-96,-49,-3,44,90,136,179,218,255,289,325,-349,-315,-278,-238,-198,-147,-100,-51,-3,45,94,141,192,233,272,309,343,-352,-315,-280,-243,-199,-149,-100,-52,-3,46,94,143,193,236,274,309,347,-341,-311,-280,-238,-198,-148,-100,-50,-3,44,94,142,192,232,275,305,335,-309,-277,-248,-214,-175,-134,-90,-47,-3,41,84,128,170,208,242,271,303,-258,-238,-219,-189,-157,-125,-80,-42,-3,36,74,119,151,183,213,233,252,-215,-197,-176,-148,-115,-79,-54,-28,-3,22,48,73,110,142,170,191,209,-172,-156,-141,-109,-77,-41,-22,-3,16,35,71,103,135,150,166,-125,-93,-41,-3,35,87,119,-79,-41,-3,35,73,-3,-3,-3,-3,-196,-300,-341,-215,190,294,335,209,-79,-198,-238,-214,-91,73,193,233,208,86,-91,-149,86,143]
+    overalltempyvect = [398,402,398,387,372,370,370,372,387,359,346,343,341,337,337,337,337,337,337,337,341,343,346,359,332,324,317,313,311,308,308,308,308,311,313,317,324,332,305,296,291,286,282,279,276,274,273,274,276,279,282,286,291,296,305,252,239,228,219,213,209,205,200,199,200,205,209,213,219,228,239,252,199,176,162,150,143,137,134,129,126,129,134,137,143,150,162,176,199,114,99,86,77,70,64,60,56,52,56,60,64,70,77,86,99,114,28,13,6,1,-5,-10,-16,-18,-21,-18,-16,-10,-5,1,6,13,28,-62,-65,-67,-69,-71,-72,-74,-75,-75,-75,-74,-72,-71,-69,-67,-65,-62,-151,-147,-141,-137,-136,-133,-132,-130,-129,-130,-132,-133,-136,-137,-141,-147,-151,-220,-210,-204,-200,-195,-191,-188,-185,-183,-185,-188,-191,-195,-200,-204,-210,-220,-289,-274,-266,-260,-255,-248,-243,-239,-237,-239,-243,-248,-255,-260,-266,-274,-289,-328,-318,-309,-304,-299,-295,-293,-291,-289,-291,-293,-295,-299,-304,-309,-318,-328,-367,-356,-350,-345,-344,-342,-342,-341,-342,-342,-344,-345,-350,-356,-367,-384,-371,-369,-369,-369,-371,-384,-393,-395,-397,-395,-393,402,-21,-183,-397,345,176,-151,-328,345,176,-151,-328,308,219,1,-200,-293,308,219,1,-200,-293,134,-72,134,-72]
+    
+    chanvect = []
+    zvect = []
+    xvect = []
+    yvect = []
+    for cChan in range(len(Channels)):
+        try:
+            matchindex = overallchanlabsupper.index(Channels[cChan].upper())
+        except:
+            matchindex = 0
+        if matchindex > 0:
+            chanvect.append(overallchanlabs[matchindex])
+            xvect.append(overalltempxvect[matchindex])
+            yvect.append(overalltempyvect[matchindex])
+            zvect.append(Amplitude[cChan])
+        
+    expand = 0.05
+    # Adjust rostral sensors vertically
+    temparray = ['AFP5','FP1','FP1h','FPZ','FP2h','FP2','AFP6','AF7','AFF7','F7','FFT7','AF8','AFF8','F8','FFT8','AF7','AFF7','F7','FFT7','AF8','AFF8','F8','FFT8','MiPf','LLPf','RLPf'];
+    for cChan in range(len(chanvect)):
+        try:
+            matchindex = temparray.index(chanvect[cChan])
+        except:
+            matchindex = 0
+        if matchindex > 0:
+            yvect[cChan] = yvect[cChan] + numpy.multiply(yvect[cChan], expand)
+            
+    expand = 0.004
+    # Adjust caudal sensors vertically
+    temparray = ['POO5','O1','O1h','OZ','O2h','O2','POO6','TPP7','P7','PPO7','PO7','TPP8','P8','PPO8','PO8','MiOc']
+    for cChan in range(len(chanvect)):
+        try:
+            matchindex = temparray.index(chanvect[cChan])
+        except:
+            matchindex = 0
+        if matchindex > 0:
+            yvect[cChan] = yvect[cChan] + numpy.multiply(yvect[cChan], expand)
+            
+    expand = 0.065
+    # Adjust caudal sensors vertically
+    temparray = ['LLOc','RLOc']
+    for cChan in range(len(chanvect)):
+        try:
+            matchindex = temparray.index(chanvect[cChan])
+        except:
+            matchindex = 0
+        if matchindex > 0:
+            yvect[cChan] = yvect[cChan] + numpy.multiply(yvect[cChan], expand)
+            
+    expand = 0.05
+    # Adjust lateral sensors horizontally
+    temparray = ['AFP5','AFP6','AF7','AFF7','F7','FFT7','AF8','AFF8','F8','FFT8','POO5','POO6','TPP7','P7','PPO7','PO7','TPP8','P8','PPO8','PO8','FT7','FTT7','T7','TTP7','TP7','FT8','FTT8','T8','TTP8','TP8','LLPf','RLPf','LLFr','RLFr','LLTe','RLTe','LLOc','RLOc']
+    for cChan in range(len(chanvect)):
+        try:
+            matchindex = temparray.index(chanvect[cChan])
+        except:
+            matchindex = 0
+        if matchindex > 0:
+            xvect[cChan] = xvect[cChan] + numpy.multiply(xvect[cChan], expand)
+            
+            
+    x = numpy.linspace(-400,400,801)
+    y = numpy.linspace(-400,400,801)
+    xi, yi = numpy.meshgrid(x,y)
+    zi = scipy.interpolate.griddata((xvect,yvect),zvect,(xi,yi),method=Method)
+    # fill any missing points 
+    if Complete:
+        zi = fill(zi)
+    
+    # plot the activity
+    if Colormap == False:
+        Colormap = matplotlib.pyplot.cm.viridis
+    contourplot = matplotlib.pyplot.contourf(xi,yi,zi, Steps, cmap=Colormap, vmin=Scale[0], vmax=Scale[1])
+    ax.autoscale(False)
+    
+    if Electrodes != False:
+        markervalue = 'k'
+        if Electrodes != True:
+            markervalue = Electrodes 
+        
+        matplotlib.pyplot.plot(numpy.multiply(xvect, 0.85), numpy.add(numpy.multiply(yvect,0.8),-35), linestyle="None", marker = '.', color=markervalue)
+        
+    extent = numpy.min(x), numpy.max(x), numpy.min(y), numpy.max(y)
+    if Style.upper() == ('Full').upper():
+        framemask = matplotlib.image.imread('eggheadplot1.png')
+    elif Style.upper() == ('Outline').upper():
+        framemask = matplotlib.image.imread('eggheadplot2.png')
+    else:
+        framemask = matplotlib.image.imread('eggheadplot3.png')
+    
+    imgmask = framemask[:,:,0] == framemask[:,:,1];
+    framemask[imgmask == 0, 3] = 0      # 100% transparent
+    
+    if BrainOpacity != False:
+        eggbrain = matplotlib.image.imread('eggheadplot4.png')
+        
+        imgmask = eggbrain[:,:,0] == eggbrain[:,:,1];
+        eggbrain[imgmask == 0, 3] = 0      # 100% transparent
+        ax.imshow(eggbrain, alpha=BrainOpacity, interpolation='nearest', extent=extent, zorder=5)
+    
+    ax.imshow(framemask, alpha=1.0, interpolation='nearest', extent=extent, zorder=6)
+    
+    
+    
 
 ################################################################################################################################################
 ################################################################################################################################################
@@ -2255,7 +2542,6 @@ def writeeegtofile(EEG, fileout):
 # DEBUG #
 if __name__ == "__main__":
     
-    
     EEG = eeglabstructure()
     
     basedate = pandas.to_datetime('2020-12-29 00:00:20')
@@ -2265,31 +2551,8 @@ if __name__ == "__main__":
     textvalue = 'Mean'
     textvalue = checkdefaultsettings(textvalue, ['median', 'mean'])
     
-    
-    
-    
-    # Still need to build
-    
-     
-    # Detect Artifacts
-    # Assess Noise
-    # Collapse Electrodes
-    # Remove Bad Electrodes
-    # interchannel relationships - detect deviant channel? - convolution?
-    
-    
-    # Build a report output
-    # Headplot of topography and waveform
-    # Two headplots and two waveforms? 
-    # Optional behavioral report as well? What would that look like?
-    
-    # 3 column format:
-    # Headplot 1 - Headplot 2 - Waveform
-    # RT - Accuracy - Score
-    #https://www.google.com/url?sa=i&url=https%3A%2F%2Fimpactconcussion.com%2Fnew-to-impact%2F&psig=AOvVaw1yahXDfbkqAKGV7d32RNep&ust=1609206369342000&source=images&cd=vfe&ved=0CAIQjRxqFwoTCKiIloLH7-0CFQAAAAAdAAAAABAZ
-    
-    #https://mne.tools/stable/auto_examples/visualization/plot_evoked_topomap.html#sphx-glr-auto-examples-visualization-plot-evoked-topomap-py
-    
-    #https://mne.tools/stable/auto_examples/visualization/plot_eeglab_head_sphere.html#sphx-glr-auto-examples-visualization-plot-eeglab-head-sphere-py
-    
+    Channels = ['FPZ', 'F3', 'FZ', 'F4', 'T7', 'C3', 'CZ', 'C4', 'T8', 'P7', 'P3', 'PZ', 'P4', 'P8', 'OZ']
+    Amplitude = [0, 3, 3, 1, 0, 7, 5, 4, 0, 2, 7, 8, 2, 2, 0]
+    eggheadplot(Channels, Amplitude, Scale = [1, 9], Steps = 256, BrainOpacity = 0.2, Title ='Egghead', Colormap=crushparula(256))
+
     
