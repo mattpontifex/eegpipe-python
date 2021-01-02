@@ -2560,48 +2560,57 @@ def realignvector(invector, oldpoint, newpoint, fill=False):
     
 
   
-def createsignal(Window, Latency, Amplitude, Width, Shape, Srate, Smo=False):   
+def createsignal(Window, Latency, Amplitude, Width, Shape, Smoothing, OverallSmooth, Srate):   
     
     xtime = numpy.arange(Window[0],Window[1],numpy.divide(1.0,Srate))
+    outvect = []
+    
+    for cR in range(len(Latency)):
         
-    comp = numpy.zeros(len(xtime))
-    matchindex = closestidx(xtime, Latency)  # find point to place
-    comp[matchindex] = abs(Amplitude)  # place amplitude
-    
-    # expand to accomodate wider smoothing
-    locatorcomp = numpy.zeros(len(xtime))
-    locatorcomp[0] = 1; locatorcomp[-1] = 1; 
-    expandexcomp = numpy.pad(copy.deepcopy(comp), (len(xtime)*3,len(xtime)*3), 'constant', constant_values=(0, 0))
-    locatorcomp = numpy.pad(copy.deepcopy(locatorcomp), (len(xtime)*3,len(xtime)*3), 'constant', constant_values=(0, 0))
-    trimlocators = numpy.where(locatorcomp == 1)
-    trimlocators[0][0] = trimlocators[0][0] - 1
-    
-    if Shape == 0:
-        expandexcomp = smooth(expandexcomp, span=Width, window='hanning')
-        comp = copy.deepcopy(expandexcomp[trimlocators[0][0]:trimlocators[0][1]])
-    else:
-        # base seg
-        expandexcomp = minmax_scaling(smooth(expandexcomp, span=Width, window='hanning'),0,0,abs(Amplitude))
-        tempshape = minmax_scaling(smooth(expandexcomp, span=Shape, window='blackman'),0,0,abs(Amplitude))
-
-        # trim down to original size
-        comp = copy.deepcopy(expandexcomp[trimlocators[0][0]:trimlocators[0][1]])
-        tempshape = copy.deepcopy(tempshape[trimlocators[0][0]:trimlocators[0][1]])
-
-        # replace segments
-        if Shape < 0:
-            comp[0:matchindex-1] = tempshape[0:matchindex-1]
+        comp = numpy.zeros(len(xtime))
+        matchindex = closestidx(xtime, Latency[cR])  # find point to place
+        comp[matchindex] = abs(Amplitude[cR])  # place amplitude
+        
+        # expand to accomodate wider smoothing
+        locatorcomp = numpy.zeros(len(xtime))
+        locatorcomp[0] = 1; locatorcomp[-1] = 1; 
+        expandexcomp = numpy.pad(copy.deepcopy(comp), (len(xtime)*3,len(xtime)*3), 'constant', constant_values=(0, 0))
+        locatorcomp = numpy.pad(copy.deepcopy(locatorcomp), (len(xtime)*3,len(xtime)*3), 'constant', constant_values=(0, 0))
+        trimlocators = numpy.where(locatorcomp == 1)
+        trimlocators[0][0] = trimlocators[0][0] - 1
+        
+        if Shape == 0:
+            expandexcomp = smooth(expandexcomp, span=Width[cR], window='hanning')
+            comp = copy.deepcopy(expandexcomp[trimlocators[0][0]:trimlocators[0][1]])
         else:
-            comp[matchindex+1:-1] = tempshape[matchindex+1:-1]
+            # base seg
+            expandexcomp = minmax_scaling(smooth(expandexcomp, span=Width[cR], window='hanning'),0,0,abs(Amplitude[cR]))
+            tempshape = minmax_scaling(smooth(expandexcomp, span=Shape[cR], window='blackman'),0,0,abs(Amplitude[cR]))
+    
+            # trim down to original size
+            comp = copy.deepcopy(expandexcomp[trimlocators[0][0]:trimlocators[0][1]])
+            tempshape = copy.deepcopy(tempshape[trimlocators[0][0]:trimlocators[0][1]])
+    
+            # replace segments
+            if Shape[cR] < 0:
+                comp[0:matchindex-1] = tempshape[0:matchindex-1]
+            else:
+                comp[matchindex+1:-1] = tempshape[matchindex+1:-1]
+                
+        if float(Smoothing[cR]) != float(0.0):
+            comp = smooth(comp, span=int(Smoothing[cR]), window='hanning')
             
-    if Smo != False:
-        comp = smooth(comp, span=int(Smo), window='hanning')
-        
-    comp = minmax_scaling(comp, 0, 0.0, float(abs(Amplitude)))
-    if Amplitude < 0:
-        comp = comp * -1
+        comp = minmax_scaling(comp, 0, 0.0, float(abs(Amplitude[cR])))
+        if Amplitude[cR] < 0:
+            comp = comp * -1
+            
+        outvect.append(copy.deepcopy(comp))
+    
+    outsum = numpy.sum(numpy.vstack(copy.deepcopy(outvect)), axis=0)
+    if float(OverallSmooth) != float(0.0):
+        outsum = smooth(outsum, span=int(OverallSmooth), window='hanning')
 
-    return copy.deepcopy(comp)
+    return [outsum, outvect, xtime]
         
 
     
@@ -2624,11 +2633,13 @@ if __name__ == "__main__":
     eggheadplot(Channels, Amplitude, Scale = [1, 9], Steps = 256, BrainOpacity = 0.2, Title ='Egghead', Colormap=crushparula(256))
 
     
-    outvect = []
-    outvect.append(createsignal([-0.1, 1.0], 0.08,    -0.1,  30,   0, 250.0, False)) 
-    outvect.append(createsignal([-0.1, 1.0], 0.1,    0.15,  30,   0, 250.0, False)) 
-    outvect.append(createsignal([-0.1, 1.0], 0.25, -0.25, 100,   0, 250.0, 20)) 
-    outvect.append(createsignal([-0.1, 1.0], 0.28,     1,  50, 250, 250.0, 20)) 
-    outvect = numpy.sum(numpy.vstack(outvect), axis=0)
-    xtime = numpy.arange(-0.1,1.0,numpy.divide(1.0,250.0))
+    [outsum, outvect, xtime] = createsignal(Window = [-0.1, 1.0],
+                 Latency =   [ 0.08,  0.25, 0.35],
+                 Amplitude = [-0.1,  -0.45, 0.50],
+                 Width =     [40,       80,  180],
+                 Shape =     [0,         0,    0],
+                 Smoothing = [0,         0,    0],
+                 OverallSmooth = 20,
+                 Srate = 250.0)
     plot(outvect, xtime)
+    plot(outsum*-1, xtime)
