@@ -392,7 +392,7 @@ def checkdefaultsettings(invar, settvar):
 
     return invar
 
-def smooth(x,span=11,window=False):
+def smooth(invect,span=11,window=False):
     """smooth the data using a window with requested size.
     
     This method is based on the convolution of a scaled window with the signal.
@@ -421,6 +421,7 @@ def smooth(x,span=11,window=False):
     scipy.signal.lfilter
  
     """
+    x = copy.deepcopy(invect)
     window = checkdefaultsettings(window, ['hanning', 'flat', 'hamming', 'bartlett', 'blackman'])
     if span>3:
         s=numpy.r_[x[span-1:0:-1],x,x[-2:-span-1:-1]]
@@ -437,7 +438,7 @@ def smooth(x,span=11,window=False):
     else:
         return x
 
-def minmax_scaling(array, columns, min_val=0, max_val=1):
+def minmax_scaling(inarray, columns, min_val=0, max_val=1):
     """Min max scaling of pandas' DataFrames.
     Parameters
     ----------
@@ -458,6 +459,7 @@ def minmax_scaling(array, columns, min_val=0, max_val=1):
     For usage examples, please see
     http://rasbt.github.io/mlxtend/user_guide/preprocessing/minmax_scaling/
     """
+    array = copy.deepcopy(inarray)
     ary_new = array.astype(float)
     if len(ary_new.shape) == 1:
         ary_new = ary_new[:, numpy.newaxis]
@@ -475,11 +477,10 @@ def minmax_scaling(array, columns, min_val=0, max_val=1):
                    ary_newt[:, columns].min(axis=0))
     ary_newt[:, columns] = numerator / denominator
 
-    if not min_val == 0 and not max_val == 1:
-        ary_newt[:, columns] = (ary_newt[:, columns] *
-                                (max_val - min_val) + min_val)
+    ary_newt[:, columns] = (ary_newt[:, columns] *
+                            (max_val - min_val) + min_val)
 
-    return ary_newt[:, columns]
+    return copy.deepcopy(ary_newt[:, columns])
 
 def single_pupil_IRF(params, x):
     s1 = params['s1']
@@ -2538,6 +2539,72 @@ def writeeegtofile(EEG, fileout):
     f.close()
     
     
+        
+def realignvector(invector, oldpoint, newpoint, fill=False):
+    dat = copy.deepcopy(invector)
+    
+    if fill==False:
+        outdat = numpy.array([numpy.nan] * len(invector))
+    else:
+        outdat = numpy.array([fill] * len(invector))
+    
+    offset = oldpoint - newpoint
+    
+    for cP in range(len(outdat)):
+        
+        newoff = cP + offset
+        if (newoff >= 0) and (newoff < len(outdat)):
+            outdat[cP] = dat[newoff]
+    
+    return outdat    
+    
+
+  
+def createsignal(Window, Latency, Amplitude, Width, Shape, Srate, Smo=False):   
+    
+    xtime = numpy.arange(Window[0],Window[1],numpy.divide(1.0,Srate))
+        
+    comp = numpy.zeros(len(xtime))
+    matchindex = closestidx(xtime, Latency)  # find point to place
+    comp[matchindex] = abs(Amplitude)  # place amplitude
+    
+    # expand to accomodate wider smoothing
+    locatorcomp = numpy.zeros(len(xtime))
+    locatorcomp[0] = 1; locatorcomp[-1] = 1; 
+    expandexcomp = numpy.pad(copy.deepcopy(comp), (len(xtime)*3,len(xtime)*3), 'constant', constant_values=(0, 0))
+    locatorcomp = numpy.pad(copy.deepcopy(locatorcomp), (len(xtime)*3,len(xtime)*3), 'constant', constant_values=(0, 0))
+    trimlocators = numpy.where(locatorcomp == 1)
+    trimlocators[0][0] = trimlocators[0][0] - 1
+    
+    if Shape == 0:
+        expandexcomp = smooth(expandexcomp, span=Width, window='hanning')
+        comp = copy.deepcopy(expandexcomp[trimlocators[0][0]:trimlocators[0][1]])
+    else:
+        # base seg
+        expandexcomp = minmax_scaling(smooth(expandexcomp, span=Width, window='hanning'),0,0,abs(Amplitude))
+        tempshape = minmax_scaling(smooth(expandexcomp, span=Shape, window='blackman'),0,0,abs(Amplitude))
+
+        # trim down to original size
+        comp = copy.deepcopy(expandexcomp[trimlocators[0][0]:trimlocators[0][1]])
+        tempshape = copy.deepcopy(tempshape[trimlocators[0][0]:trimlocators[0][1]])
+
+        # replace segments
+        if Shape < 0:
+            comp[0:matchindex-1] = tempshape[0:matchindex-1]
+        else:
+            comp[matchindex+1:-1] = tempshape[matchindex+1:-1]
+            
+    if Smo != False:
+        comp = smooth(comp, span=int(Smo), window='hanning')
+        
+    comp = minmax_scaling(comp, 0, 0.0, float(abs(Amplitude)))
+    if Amplitude < 0:
+        comp = comp * -1
+
+    return copy.deepcopy(comp)
+        
+
+    
 # # # # #
 # DEBUG #
 if __name__ == "__main__":
@@ -2551,8 +2618,17 @@ if __name__ == "__main__":
     textvalue = 'Mean'
     textvalue = checkdefaultsettings(textvalue, ['median', 'mean'])
     
+    
     Channels = ['FPZ', 'F3', 'FZ', 'F4', 'T7', 'C3', 'CZ', 'C4', 'T8', 'P7', 'P3', 'PZ', 'P4', 'P8', 'OZ']
     Amplitude = [0, 3, 3, 1, 0, 7, 5, 4, 0, 2, 7, 8, 2, 2, 0]
     eggheadplot(Channels, Amplitude, Scale = [1, 9], Steps = 256, BrainOpacity = 0.2, Title ='Egghead', Colormap=crushparula(256))
 
     
+    outvect = []
+    outvect.append(createsignal([-0.1, 1.0], 0.08,    -0.1,  30,   0, 250.0, False)) 
+    outvect.append(createsignal([-0.1, 1.0], 0.1,    0.15,  30,   0, 250.0, False)) 
+    outvect.append(createsignal([-0.1, 1.0], 0.25, -0.25, 100,   0, 250.0, 20)) 
+    outvect.append(createsignal([-0.1, 1.0], 0.28,     1,  50, 250, 250.0, 20)) 
+    outvect = numpy.sum(numpy.vstack(outvect), axis=0)
+    xtime = numpy.arange(-0.1,1.0,numpy.divide(1.0,250.0))
+    plot(outvect, xtime)
