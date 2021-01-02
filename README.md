@@ -68,18 +68,19 @@ of the list (3 elements splits the list into thirds) and then will expand that s
     cmap = eegpipe.realignvector(invector, oldpoint, newpoint, fill=False)
 ```
 
-* **createsignal**: Function that can be used to create a model erp.  
-Parameters are Window, Latency, Amplitude, Width, Shape, Srate, Smo (overall smoothing points).
+* **createsignal**: Function that can be used to create a model erp.
 ```python
     # creates a stimulus locked model ERP.
-    outvect = []
-    outvect.append(eegpipe.createsignal([-0.1, 1.0], 0.08,    -0.1,  30,   0, 250.0, False)) 
-    outvect.append(eegpipe.createsignal([-0.1, 1.0], 0.1,    0.15,  30,   0, 250.0, False)) 
-    outvect.append(eegpipe.createsignal([-0.1, 1.0], 0.25, -0.25, 100,   0, 250.0, 20)) 
-    outvect.append(eegpipe.createsignal([-0.1, 1.0], 0.28,     1,  50, 250, 250.0, 20)) 
-    outvect = numpy.sum(numpy.vstack(outvect), axis=0)
-    xtime = numpy.arange(-0.1,1.0,numpy.divide(1.0,250.0))
-    eegpipe.plot(outvect, xtime)
+    [outsum, outvect, xtime] = eegpipe.createsignal(
+                 Window = [-0.1, 1.0],
+                 Latency =   [ 0.08,  0.25, 0.35],
+                 Amplitude = [-0.1,  -0.45, 0.50],
+                 Width =     [40,       80,  180],
+                 Shape =     [0,         0,    0],
+                 Smoothing = [0,         0,    0],
+                 OverallSmooth = 20, 
+                 Srate = 250.0)
+    eegpipe.plot(outsum, xtime)
 ```
 
 * **eggheadplot**: Function that will create a topographic plot using label matching on a stylized head. The style can be 'Full' or 'Outline'. To plot multiple eggheads simply provide a list of lists for the Channels, Amplitude, and Titles.
