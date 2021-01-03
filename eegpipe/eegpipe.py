@@ -1157,6 +1157,55 @@ def extractamplitude(EEG, Window=False, Approach=False):
                 
     return outputvalues
 
+def extractpeaks(EEG, Window=False, Points=False):
+    
+    if Points == False:
+        Points = 9
+    Points = int(Points)    
+    
+    if Window != False:
+        startindex = int(closestidx(EEG.times, float(Window[0])))
+        stopindex = int(closestidx(EEG.times, float(Window[1])))
+    else:
+        startindex = 0
+        stopindex = len(EEG.times)
+    
+    outputamplitude = []
+    outputlatency = []
+    for cC in range(EEG.nbchan):
+        if EEG.trials > 0:
+            currentepochamplitude = []
+            currentepochlatency = []
+            for cE in range(EEG.trials):
+                
+                maxthresh = 0.99
+                outpoint = []
+                while len(outpoint) == 0:
+                    outpoint = peakutils.indexes(EEG.data[cC][cE][startindex:stopindex], thres=float(maxthresh), min_dist=int(Points))
+                    maxthresh = numpy.subtract(maxthresh, 0.01)
+                    if (maxthresh < 0.5):
+                        outpoint = [0]              
+                
+                currentepochamplitude.append(EEG.data[cC][cE][startindex + outpoint[0]])
+                currentepochlatency.append(EEG.times[startindex + outpoint[0]])
+                
+            outputamplitude.append(currentepochamplitude)
+            outputlatency.append(currentepochlatency)
+        else:
+            
+            maxthresh = 0.99
+            outpoint = []
+            while len(outpoint) == 0:
+                outpoint = peakutils.indexes(EEG.data[cC][startindex:stopindex], thres=float(maxthresh), min_dist=int(Points))
+                maxthresh = numpy.subtract(maxthresh, 0.01)
+                if (maxthresh < 0.5):
+                    outpoint = [0]
+            
+            outputamplitude.append(EEG.data[cC][startindex + outpoint[0]])
+            outputlatency.append(EEG.times[startindex + outpoint[0]])
+            
+    return [outputamplitude, outputlatency]
+
 
 def simplepsd(EEG, Scale=500, Ceiling=False):
     # simple function to use the mlab.psd function to compute the psd of the data
@@ -2559,6 +2608,8 @@ def realignvector(invector, oldpoint, newpoint, fill=False):
     return outdat    
     
 
+
+
   
 def createsignal(Window, Latency, Amplitude, Width, Shape, Smoothing, OverallSmooth, Srate):   
     
@@ -2611,7 +2662,6 @@ def createsignal(Window, Latency, Amplitude, Width, Shape, Smoothing, OverallSmo
         outsum = smooth(outsum, span=int(OverallSmooth), window='hanning')
 
     return [outsum, outvect, xtime]
-        
 
     
 # # # # #
