@@ -219,6 +219,13 @@ artifactpolarity - specifies if the artifact is a positive going (+1) or negativ
     eegpipe.plot([outvector])
 ```
 
+* **extractpeaks**: Function that extracts the peak amplitude and latency at each channel within the given window.
+```python
+    [outputamplitude, outputlatency] = eegpipe.extractpeaks(EEG, Window=[0.300, 0.700], Points=9)
+    eegpipe.plot([outputamplitude])
+    eegpipe.plot([outputlatency])
+```
+
 * **simplepsd**: Function that computes the power spectrum density. The frequencies extracted are stored in EEG.frequencies. The data is stored in EEG.freqdata. The Ceiling parameter will limit the reported data to only frequencies below the specified value.
 ```python
     EEG = eegpipe.simplepsd(EEG, Scale=500, Ceiling=30.0)
