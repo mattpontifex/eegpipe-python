@@ -25,7 +25,13 @@ from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 from matplotlib.widgets import Button
 
 #pip install git+git://github.com/tknapen/FIRDeconvolution.git
-from fir.FIRDeconvolution import FIRDeconvolution
+
+try:
+    from fir.FIRDeconvolution import FIRDeconvolution
+    firmodule = True
+except:
+    firmodule = False
+    
 #pip install lmfit
 from lmfit import minimize, Parameters
 #pip install PeakUtils
@@ -121,7 +127,17 @@ def crushparula(mapsize=False):
     
     return newcmap
     
-
+def eggpad(Channels, Amplitude):
+    
+    overallchanlabs = ['NZ', 'IZ', 'F9', 'F10', 'T9', 'T10', 'P9', 'P10']
+    for cChan in range(len(overallchanlabs)):
+        try:
+            matchindex = Channels.index(overallchanlabs[cChan].upper())
+        except:
+            Channels.append(overallchanlabs[cChan])
+            Amplitude.append(0.0)
+    
+    return [Channels, Amplitude]
 
 
 def eggheadplot(Channels, Amplitude, Steps=512, Scale=False, Colormap=False, Method='cubic', Complete=True, Style='Full', TickValues=False, BrainOpacity=0.2, Title=False, Electrodes=True, **kwargs):
@@ -217,14 +233,13 @@ def eggheadplot_sub(Channels, Amplitude, ax=None, Steps=512, Scale=False, Colorm
     
     #ax.patch.set_facecolor('#FFFFFF')
     
-    
     # figure out where the data goes
-    overallchanlabs = ['FP1','FPZ','FP2','AFP5','AFP3','AFP1','AFP2','AFP4','AFP6','AF7','AF7h','AF5','AF5h','AF3','AF1','AF1h','AFZ','AF2h','AF2','AF4','AF6h','AF6','AF8h','AF8','AFF7','AFF7h','AFF5','AFF5h','AFF3','AFF3h','AFF1h','AFF2h','AFF4h','AFF4','AFF6h','AFF6','AFF8h','AFF8','F7','F7h','F5','F5h','F3','F3h','F1','F1h','FZ','F2h','F2','F4h','F4','F6h','F6','F8h','F8','FFT7','FFT7h','FFC5','FFC5h','FFC3','FFC3h','FFC1','FFC1h','FFCZ','FFC2h','FFC2','FFC4h','FFC4','FFC6h','FFC6','FFT8h','FFT8','FT7','FT7h','FC5','FC5h','FC3','FC3h','FC1','FC1h','FCZ','FC2h','FC2','FC4h','FC4','FC6h','FC6','FT8h','FT8','FTT7','FTT7h','FCC5','FCC5h','FCC3','FCC3h','FCC1','FCC1h','FCCZ','FCC2h','FCC2','FCC4h','FCC4','FCC6h','FCC6','FTT8h','FTT8','T7','T7h','C5','C5h','C3','C3h','C1','C1h','CZ','C2h','C2','C4h','C4','C6h','C6','T8h','T8','TTP7','TTP7h','CCP5','CCP5h','CCP3','CCP3h','CCP1','CCP1h','CCPZ','CCP2h','CCP2','CCP4h','CCP4','CCP6h','CCP6','TTP8h','TTP8','TP7','TP7h','CP5','CP5h','CP3','CP3h','CP1','CP1h','CPZ','CP2h','CP2','CP4h','CP4','CP6h','CP6','TP8h','TP8','TPP7','TPP7h','CPP5','CPP5h','CPP3','CPP3h','CPP1','CPP1h','CPPZ','CPP2h','CPP2','CPP4h','CPP4','CPP6h','CPP6','TPP8h','TPP8','P7','P7h','P5','P5h','P3','P3h','P1','P1h','PZ','P2h','P2','P4h','P4','P6h','P6','P8h','P8','PPO7','PPO7h','PPO5','PPO5h','PPO3','PPO3h','PPO1','PPO1h','PPOZ','PPO2h','PPO2','PPO4h','PPO4','PPO6h','PPO6','PPO8h','PPO8','PO7','PO7h','PO5','PO5h','PO3','PO3h','PO1','POZ','PO2','PO4h','PO4','PO6h','PO6','PO8h','PO8','POO5','POO3','POO1','POOZ','POO2','POO4','POO6','O1','O1h','OZ','O2h','O2','MiPf','MiCe','MiPa','MiOc','LLPf','LLFr','LLTe','LLOc','RLPf','RLFr','RLTe','RLOc','LMPf','LDFr','LDCe','LDPa','LMOc','RMPf','RDFr','RDCe','RDPa','RMOc','LMFr','LMCe','RMFr','RMCe']
+    overallchanlabs = ['NZ','IZ','P9','P10','T9','T10','F9','F10', 'FP1','FPZ','FP2','AFP5','AFP3','AFP1','AFP2','AFP4','AFP6','AF7','AF7h','AF5','AF5h','AF3','AF1','AF1h','AFZ','AF2h','AF2','AF4','AF6h','AF6','AF8h','AF8','AFF7','AFF7h','AFF5','AFF5h','AFF3','AFF3h','AFF1h','AFF2h','AFF4h','AFF4','AFF6h','AFF6','AFF8h','AFF8','F7','F7h','F5','F5h','F3','F3h','F1','F1h','FZ','F2h','F2','F4h','F4','F6h','F6','F8h','F8','FFT7','FFT7h','FFC5','FFC5h','FFC3','FFC3h','FFC1','FFC1h','FFCZ','FFC2h','FFC2','FFC4h','FFC4','FFC6h','FFC6','FFT8h','FFT8','FT7','FT7h','FC5','FC5h','FC3','FC3h','FC1','FC1h','FCZ','FC2h','FC2','FC4h','FC4','FC6h','FC6','FT8h','FT8','FTT7','FTT7h','FCC5','FCC5h','FCC3','FCC3h','FCC1','FCC1h','FCCZ','FCC2h','FCC2','FCC4h','FCC4','FCC6h','FCC6','FTT8h','FTT8','T7','T7h','C5','C5h','C3','C3h','C1','C1h','CZ','C2h','C2','C4h','C4','C6h','C6','T8h','T8','TTP7','TTP7h','CCP5','CCP5h','CCP3','CCP3h','CCP1','CCP1h','CCPZ','CCP2h','CCP2','CCP4h','CCP4','CCP6h','CCP6','TTP8h','TTP8','TP7','TP7h','CP5','CP5h','CP3','CP3h','CP1','CP1h','CPZ','CP2h','CP2','CP4h','CP4','CP6h','CP6','TP8h','TP8','TPP7','TPP7h','CPP5','CPP5h','CPP3','CPP3h','CPP1','CPP1h','CPPZ','CPP2h','CPP2','CPP4h','CPP4','CPP6h','CPP6','TPP8h','TPP8','P7','P7h','P5','P5h','P3','P3h','P1','P1h','PZ','P2h','P2','P4h','P4','P6h','P6','P8h','P8','PPO7','PPO7h','PPO5','PPO5h','PPO3','PPO3h','PPO1','PPO1h','PPOZ','PPO2h','PPO2','PPO4h','PPO4','PPO6h','PPO6','PPO8h','PPO8','PO7','PO7h','PO5','PO5h','PO3','PO3h','PO1','POZ','PO2','PO4h','PO4','PO6h','PO6','PO8h','PO8','POO5','POO3','POO1','POOZ','POO2','POO4','POO6','O1','O1h','OZ','O2h','O2','MiPf','MiCe','MiPa','MiOc','LLPf','LLFr','LLTe','LLOc','RLPf','RLFr','RLTe','RLOc','LMPf','LDFr','LDCe','LDPa','LMOc','RMPf','RDFr','RDCe','RDPa','RMOc','LMFr','LMCe','RMFr','RMCe']
     overallchanlabsupper = copy.deepcopy(overallchanlabs)
     overallchanlabsupper = [x.upper() for x in overallchanlabsupper]
     
-    overalltempxvect = [-79,-3,73,-148,-97,-42,36,91,142,-216,-182,-148,-113,-79,-57,-34,-3,28,51,73,107,142,176,210,-235,-209,-184,-150,-113,-79,-36,30,73,107,144,178,203,229,-254,-235,-216,-187,-155,-116,-79,-37,-3,31,73,110,149,182,210,230,248,-282,-256,-229,-198,-164,-126,-85,-44,-3,38,79,120,158,193,223,250,276,-309,-278,-245,-211,-178,-134,-91,-47,-3,41,86,128,172,205,238,272,303,-331,-295,-260,-224,-185,-142,-96,-49,-3,44,90,136,179,218,255,289,325,-349,-315,-278,-238,-198,-147,-100,-51,-3,45,94,141,192,233,272,309,343,-352,-315,-280,-243,-199,-149,-100,-52,-3,46,94,143,193,236,274,309,347,-341,-311,-280,-238,-198,-148,-100,-50,-3,44,94,142,192,232,275,305,335,-309,-277,-248,-214,-175,-134,-90,-47,-3,41,84,128,170,208,242,271,303,-258,-238,-219,-189,-157,-125,-80,-42,-3,36,74,119,151,183,213,233,252,-215,-197,-176,-148,-115,-79,-54,-28,-3,22,48,73,110,142,170,191,209,-172,-156,-141,-109,-77,-41,-22,-3,16,35,71,103,135,150,166,-125,-93,-41,-3,35,87,119,-79,-41,-3,35,73,-3,-3,-3,-3,-196,-300,-341,-215,190,294,335,209,-79,-198,-238,-214,-91,73,193,233,208,86,-91,-149,86,143]
-    overalltempyvect = [398,402,398,387,372,370,370,372,387,359,346,343,341,337,337,337,337,337,337,337,341,343,346,359,332,324,317,313,311,308,308,308,308,311,313,317,324,332,305,296,291,286,282,279,276,274,273,274,276,279,282,286,291,296,305,252,239,228,219,213,209,205,200,199,200,205,209,213,219,228,239,252,199,176,162,150,143,137,134,129,126,129,134,137,143,150,162,176,199,114,99,86,77,70,64,60,56,52,56,60,64,70,77,86,99,114,28,13,6,1,-5,-10,-16,-18,-21,-18,-16,-10,-5,1,6,13,28,-62,-65,-67,-69,-71,-72,-74,-75,-75,-75,-74,-72,-71,-69,-67,-65,-62,-151,-147,-141,-137,-136,-133,-132,-130,-129,-130,-132,-133,-136,-137,-141,-147,-151,-220,-210,-204,-200,-195,-191,-188,-185,-183,-185,-188,-191,-195,-200,-204,-210,-220,-289,-274,-266,-260,-255,-248,-243,-239,-237,-239,-243,-248,-255,-260,-266,-274,-289,-328,-318,-309,-304,-299,-295,-293,-291,-289,-291,-293,-295,-299,-304,-309,-318,-328,-367,-356,-350,-345,-344,-342,-342,-341,-342,-342,-344,-345,-350,-356,-367,-384,-371,-369,-369,-369,-371,-384,-393,-395,-397,-395,-393,402,-21,-183,-397,345,176,-151,-328,345,176,-151,-328,308,219,1,-200,-293,308,219,1,-200,-293,134,-72,134,-72]
+    overalltempxvect = [-3,-3,-361,355,-380,370,-361,355, -79,-3,73,-148,-97,-42,36,91,142,-216,-182,-148,-113,-79,-57,-34,-3,28,51,73,107,142,176,210,-235,-209,-184,-150,-113,-79,-36,30,73,107,144,178,203,229,-254,-235,-216,-187,-155,-116,-79,-37,-3,31,73,110,149,182,210,230,248,-282,-256,-229,-198,-164,-126,-85,-44,-3,38,79,120,158,193,223,250,276,-309,-278,-245,-211,-178,-134,-91,-47,-3,41,86,128,172,205,238,272,303,-331,-295,-260,-224,-185,-142,-96,-49,-3,44,90,136,179,218,255,289,325,-349,-315,-278,-238,-198,-147,-100,-51,-3,45,94,141,192,233,272,309,343,-352,-315,-280,-243,-199,-149,-100,-52,-3,46,94,143,193,236,274,309,347,-341,-311,-280,-238,-198,-148,-100,-50,-3,44,94,142,192,232,275,305,335,-309,-277,-248,-214,-175,-134,-90,-47,-3,41,84,128,170,208,242,271,303,-258,-238,-219,-189,-157,-125,-80,-42,-3,36,74,119,151,183,213,233,252,-215,-197,-176,-148,-115,-79,-54,-28,-3,22,48,73,110,142,170,191,209,-172,-156,-141,-109,-77,-41,-22,-3,16,35,71,103,135,150,166,-125,-93,-41,-3,35,87,119,-79,-41,-3,35,73,-3,-3,-3,-3,-196,-300,-341,-215,190,294,335,209,-79,-198,-238,-214,-91,73,193,233,208,86,-91,-149,86,143]
+    overalltempyvect = [415,-465,-380,-380,28,28,337,337, 398,402,398,387,372,370,370,372,387,359,346,343,341,337,337,337,337,337,337,337,341,343,346,359,332,324,317,313,311,308,308,308,308,311,313,317,324,332,305,296,291,286,282,279,276,274,273,274,276,279,282,286,291,296,305,252,239,228,219,213,209,205,200,199,200,205,209,213,219,228,239,252,199,176,162,150,143,137,134,129,126,129,134,137,143,150,162,176,199,114,99,86,77,70,64,60,56,52,56,60,64,70,77,86,99,114,28,13,6,1,-5,-10,-16,-18,-21,-18,-16,-10,-5,1,6,13,28,-62,-65,-67,-69,-71,-72,-74,-75,-75,-75,-74,-72,-71,-69,-67,-65,-62,-151,-147,-141,-137,-136,-133,-132,-130,-129,-130,-132,-133,-136,-137,-141,-147,-151,-220,-210,-204,-200,-195,-191,-188,-185,-183,-185,-188,-191,-195,-200,-204,-210,-220,-289,-274,-266,-260,-255,-248,-243,-239,-237,-239,-243,-248,-255,-260,-266,-274,-289,-328,-318,-309,-304,-299,-295,-293,-291,-289,-291,-293,-295,-299,-304,-309,-318,-328,-367,-356,-350,-345,-344,-342,-342,-341,-342,-342,-344,-345,-350,-356,-367,-384,-371,-369,-369,-369,-371,-384,-393,-395,-397,-395,-393,402,-21,-183,-397,345,176,-151,-328,345,176,-151,-328,308,219,1,-200,-293,308,219,1,-200,-293,134,-72,134,-72]
     
     chanvect = []
     zvect = []
@@ -243,7 +258,7 @@ def eggheadplot_sub(Channels, Amplitude, ax=None, Steps=512, Scale=False, Colorm
         
     expand = 0.05
     # Adjust rostral sensors vertically
-    temparray = ['AFP5','FP1','FP1h','FPZ','FP2h','FP2','AFP6','AF7','AFF7','F7','FFT7','AF8','AFF8','F8','FFT8','AF7','AFF7','F7','FFT7','AF8','AFF8','F8','FFT8','MiPf','LLPf','RLPf'];
+    temparray = ['NZ','AFP5','FP1','FP1h','FPZ','FP2h','FP2','AFP6','AF7','AFF7','F7','FFT7','AF8','AFF8','F8','FFT8','F9','F10','AF7','AFF7','F7','FFT7','AF8','AFF8','F8','FFT8','MiPf','LLPf','RLPf'];
     for cChan in range(len(chanvect)):
         try:
             matchindex = temparray.index(chanvect[cChan])
@@ -254,7 +269,7 @@ def eggheadplot_sub(Channels, Amplitude, ax=None, Steps=512, Scale=False, Colorm
             
     expand = 0.004
     # Adjust caudal sensors vertically
-    temparray = ['POO5','O1','O1h','OZ','O2h','O2','POO6','TPP7','P7','PPO7','PO7','TPP8','P8','PPO8','PO8','MiOc']
+    temparray = ['IZ','POO5','O1','O1h','OZ','O2h','O2','POO6','TPP7','P7','PPO7','PO7','TPP8','P8','PPO8','PO8','MiOc','P9','P10']
     for cChan in range(len(chanvect)):
         try:
             matchindex = temparray.index(chanvect[cChan])
@@ -276,7 +291,7 @@ def eggheadplot_sub(Channels, Amplitude, ax=None, Steps=512, Scale=False, Colorm
             
     expand = 0.05
     # Adjust lateral sensors horizontally
-    temparray = ['AFP5','AFP6','AF7','AFF7','F7','FFT7','AF8','AFF8','F8','FFT8','POO5','POO6','TPP7','P7','PPO7','PO7','TPP8','P8','PPO8','PO8','FT7','FTT7','T7','TTP7','TP7','FT8','FTT8','T8','TTP8','TP8','LLPf','RLPf','LLFr','RLFr','LLTe','RLTe','LLOc','RLOc']
+    temparray = ['AFP5','AFP6','AF7','AFF7','F7','FFT7','AF8','AFF8','F8', 'F9', 'F10','FFT8','POO5','POO6','TPP7','P7','PPO7','PO7','TPP8','P8','PPO8','PO8','FT7','FTT7','T7','TTP7','TP7','FT8','FTT8','T8','TTP8','TP8','LLPf','RLPf','LLFr','RLFr','LLTe','RLTe','LLOc','RLOc', 'P9','P10','T9','T10']
     for cChan in range(len(chanvect)):
         try:
             matchindex = temparray.index(chanvect[cChan])
@@ -309,17 +324,30 @@ def eggheadplot_sub(Channels, Amplitude, ax=None, Steps=512, Scale=False, Colorm
         
     extent = numpy.min(x), numpy.max(x), numpy.min(y), numpy.max(y)
     if Style.upper() == ('Full').upper():
-        framemask = matplotlib.image.imread('eggheadplot1.png')
+        try:
+            framemask = matplotlib.image.imread('eggheadplot1.png')
+        except:
+            framemask = matplotlib.image.imread('Gentask\Engine\eggheadplot1.png')
+            
     elif Style.upper() == ('Outline').upper():
-        framemask = matplotlib.image.imread('eggheadplot2.png')
+        try:
+            framemask = matplotlib.image.imread('eggheadplot2.png')
+        except:
+            framemask = matplotlib.image.imread('Gentask\Engine\eggheadplot2.png')
     else:
-        framemask = matplotlib.image.imread('eggheadplot3.png')
+        try:
+            framemask = matplotlib.image.imread('eggheadplot3.png')
+        except:
+            framemask = matplotlib.image.imread('Gentask\Engine\eggheadplot3.png')
     
     imgmask = framemask[:,:,0] == framemask[:,:,1];
     framemask[imgmask == 0, 3] = 0      # 100% transparent
     
     if BrainOpacity != False:
-        eggbrain = matplotlib.image.imread('eggheadplot4.png')
+        try:
+            eggbrain = matplotlib.image.imread('eggheadplot4.png')
+        except:
+            eggbrain = matplotlib.image.imread('Gentask\Engine\eggheadplot4.png')
         
         imgmask = eggbrain[:,:,0] == eggbrain[:,:,1];
         eggbrain[imgmask == 0, 3] = 0      # 100% transparent
@@ -1368,8 +1396,10 @@ def simplefilter(EEG, Filter=False, Design=False, Cutoff=False, Order=False, Win
             nans, x= numpy.isnan(filtdata), lambda z: z.nonzero()[0]
             # interpolate prior to filtering
             filtdata[nans] = numpy.interp(x(nans), x(~nans), filtdata[~nans])
-            
-            filtdata = numpy.nan_to_num(filtdata, copy=True, nan=0.0)
+            try:
+                filtdata = numpy.nan_to_num(filtdata, copy=True, nan=0.0)
+            except:
+                filtdata = numpy.nan_to_num(filtdata, copy=True)
             filtdata = scipy.signal.savgol_filter(filtdata, window_length=int(window_size), polyorder=Order)
         
             if len(nans) > 0:
@@ -1399,7 +1429,10 @@ def simplefilter(EEG, Filter=False, Design=False, Cutoff=False, Order=False, Win
                     # interpolate prior to filtering
                     filtdata[nans] = numpy.interp(x(nans), x(~nans), filtdata[~nans])
                     
-                    filtdata = numpy.nan_to_num(filtdata, copy=True, nan=0.0)
+                    try:
+                        filtdata = numpy.nan_to_num(filtdata, copy=True, nan=0.0)
+                    except:
+                        filtdata = numpy.nan_to_num(filtdata, copy=True)
                     filtdata = smooth(filtdata, span=window_size, window=Design)
                 
                     if len(nans) > 0:
@@ -1421,7 +1454,10 @@ def simplefilter(EEG, Filter=False, Design=False, Cutoff=False, Order=False, Win
                         # interpolate prior to filtering
                         filtdata[nans] = numpy.interp(x(nans), x(~nans), filtdata[~nans])
                         
-                        filtdata = numpy.nan_to_num(filtdata, copy=True, nan=0.0)
+                        try:
+                            filtdata = numpy.nan_to_num(filtdata, copy=True, nan=0.0)
+                        except:
+                            filtdata = numpy.nan_to_num(filtdata, copy=True)
                         filtdata = smooth(filtdata, span=window_size, window=Design)
                     
                         if len(nans) > 0:
