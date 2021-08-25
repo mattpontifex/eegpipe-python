@@ -213,6 +213,11 @@ artifactpolarity - specifies if the artifact is a positive going (+1) or negativ
     vector = eegpipe.regressionbasedartifactremoval(vector, artifactindices, decompinterval, samplerate, artifactpolarity)
 ```
 
+* **collapsechannels**: Function that collapses the specified channels to create a new composite channel.
+```python
+    EEG = eegpipe.collapsechannels(EEG, Channels=['C1', 'CZ', 'C2'], NewChannelName='SPOTC1CZC2', Approach='mean')
+```
+
 * **extractamplitude**: Function that computes the amplitude at each channel within the given window.
 ```python
     outvector = eegpipe.extractamplitude(EEG, Window=[0.300, 0.700], Approach='mean')
