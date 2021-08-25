@@ -1153,6 +1153,66 @@ def mergetaskperformance(EEG, filein):
 ################################################################################################################################################
 ################################################################################################################################################
 
+
+def collapsechannels(EEG, Channels, NewChannelName=None, Approach=False):
+    OUTEEG = copy.deepcopy(EEG)
+    Approach = checkdefaultsettings(Approach, ['median', 'mean'])
+    Waveform = None
+    availablechannels = copy.deepcopy(EEG.channels)
+    
+    if EEG.trials == 0:  
+        Waveform = [[numpy.nan] * len(EEG.times)] * len(Channels)
+        for cChan in range(len(Channels)):
+            try:
+                matchindex = availablechannels.index(Channels[cChan])
+            except:
+                matchindex = None
+            if matchindex != None:
+                Waveform[cChan] = EEG.data[matchindex]
+        Waveform = numpy.vstack(Waveform)
+        if Approach == 'mean':
+            Waveform = numpy.nanmean(Waveform, axis=0)
+        elif Approach == 'median':
+            Waveform = numpy.nanmedian(Waveform, axis=0)
+                
+    else:
+        Waveform = [[numpy.nan] * len(EEG.times)] * EEG.trials
+        for cE in range(EEG.trials):
+            epochwaveform = [[numpy.nan] * len(EEG.times)] * len(Channels)
+            for cChan in range(len(Channels)):
+                try:
+                    matchindex = availablechannels.index(Channels[cChan])
+                except:
+                    matchindex = None
+                if matchindex != None:
+                    epochwaveform[cChan] = EEG.data[matchindex][cE]   
+            epochwaveform = numpy.vstack(epochwaveform)
+            if Approach == 'mean':
+                epochwaveform = numpy.nanmean(epochwaveform, axis=0)
+            elif Approach == 'median':
+                epochwaveform = numpy.nanmedian(epochwaveform, axis=0)
+            Waveform[cE] = epochwaveform
+        
+    if NewChannelName == None:
+        # user did not specify a preferred name
+        NewChannelName = 'SPOT' + ''.join(Channels)
+        
+    try:
+        matchindex = availablechannels.index(NewChannelName)
+    except:
+        matchindex = None
+    if matchindex != None:
+        # user specified a channel that already exists - so just drop data there
+        OUTEEG.data[matchindex] = Waveform
+    else:
+        OUTEEG.channels.append(NewChannelName)
+        OUTEEG.data.append(Waveform)
+        
+    OUTEEG.nbchan = len(OUTEEG.data)
+            
+    return OUTEEG
+
+
 def extractamplitude(EEG, Window=False, Approach=False):
     
     Approach = checkdefaultsettings(Approach, ['median', 'mean'])
