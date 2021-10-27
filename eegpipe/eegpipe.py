@@ -50,9 +50,16 @@ from peakutils.plot import plot as peakutilspplot
 #%matplotlib qt
 
 
-def version():
-    print('eegpipe toolbox version 0.1, updated 2020-12-29')
-    # 0.1
+
+
+
+
+
+
+def vectorlength(group1, group2):
+    asquare = numpy.square(numpy.absolute(numpy.subtract(group2[0], group1[0])))
+    bsquare = numpy.square(numpy.absolute(numpy.subtract(group2[1], group1[1])))
+    return numpy.sqrt(numpy.add(asquare,bsquare))
 
 
 
@@ -127,18 +134,158 @@ def crushparula(mapsize=False):
     
     return newcmap
     
-def eggpad(Channels, Amplitude):
-    
+def eggsub10(Channels, Amplitude, searchlimit=300, levels=1):
+    completechanlabs = ['NZ','IZ','P9','P10','T9','T10','F9','F10', 'FP1','FPZ','FP2','AFP5','AFP3','AFP1','AFP2','AFP4','AFP6','AF7','AF7h','AF5','AF5h','AF3','AF1','AF1h','AFZ','AF2h','AF2','AF4','AF6h','AF6','AF8h','AF8','AFF7','AFF7h','AFF5','AFF5h','AFF3','AFF3h','AFF1h','AFF2h','AFF4h','AFF4','AFF6h','AFF6','AFF8h','AFF8','F7','F7h','F5','F5h','F3','F3h','F1','F1h','FZ','F2h','F2','F4h','F4','F6h','F6','F8h','F8','FFT7','FFT7h','FFC5','FFC5h','FFC3','FFC3h','FFC1','FFC1h','FFCZ','FFC2h','FFC2','FFC4h','FFC4','FFC6h','FFC6','FFT8h','FFT8','FT7','FT7h','FC5','FC5h','FC3','FC3h','FC1','FC1h','FCZ','FC2h','FC2','FC4h','FC4','FC6h','FC6','FT8h','FT8','FTT7','FTT7h','FCC5','FCC5h','FCC3','FCC3h','FCC1','FCC1h','FCCZ','FCC2h','FCC2','FCC4h','FCC4','FCC6h','FCC6','FTT8h','FTT8','T7','T7h','C5','C5h','C3','C3h','C1','C1h','CZ','C2h','C2','C4h','C4','C6h','C6','T8h','T8','TTP7','TTP7h','CCP5','CCP5h','CCP3','CCP3h','CCP1','CCP1h','CCPZ','CCP2h','CCP2','CCP4h','CCP4','CCP6h','CCP6','TTP8h','TTP8','TP7','TP7h','CP5','CP5h','CP3','CP3h','CP1','CP1h','CPZ','CP2h','CP2','CP4h','CP4','CP6h','CP6','TP8h','TP8','TPP7','TPP7h','CPP5','CPP5h','CPP3','CPP3h','CPP1','CPP1h','CPPZ','CPP2h','CPP2','CPP4h','CPP4','CPP6h','CPP6','TPP8h','TPP8','P7','P7h','P5','P5h','P3','P3h','P1','P1h','PZ','P2h','P2','P4h','P4','P6h','P6','P8h','P8','PPO7','PPO7h','PPO5','PPO5h','PPO3','PPO3h','PPO1','PPO1h','PPOZ','PPO2h','PPO2','PPO4h','PPO4','PPO6h','PPO6','PPO8h','PPO8','PO7','PO7h','PO5','PO5h','PO3','PO3h','PO1','POZ','PO2','PO4h','PO4','PO6h','PO6','PO8h','PO8','POO5','POO3','POO1','POOZ','POO2','POO4','POO6','O1','O1h','OZ','O2h','O2','MiPf','MiCe','MiPa','MiOc','LLPf','LLFr','LLTe','LLOc','RLPf','RLFr','RLTe','RLOc','LMPf','LDFr','LDCe','LDPa','LMOc','RMPf','RDFr','RDCe','RDPa','RMOc','LMFr','LMCe','RMFr','RMCe']
+    completechanlabsupper = copy.deepcopy(completechanlabs)
+    completechanlabsupper = [x.upper() for x in completechanlabsupper]
+    completexvect = [-3,-3,-361,355,-380,370,-361,355, -79,-3,73,-148,-97,-42,36,91,142,-216,-182,-148,-113,-79,-57,-34,-3,28,51,73,107,142,176,210,-235,-209,-184,-150,-113,-79,-36,30,73,107,144,178,203,229,-254,-235,-216,-187,-155,-116,-79,-37,-3,31,73,110,149,182,210,230,248,-282,-256,-229,-198,-164,-126,-85,-44,-3,38,79,120,158,193,223,250,276,-309,-278,-245,-211,-178,-134,-91,-47,-3,41,86,128,172,205,238,272,303,-331,-295,-260,-224,-185,-142,-96,-49,-3,44,90,136,179,218,255,289,325,-349,-315,-278,-238,-198,-147,-100,-51,-3,45,94,141,192,233,272,309,343,-352,-315,-280,-243,-199,-149,-100,-52,-3,46,94,143,193,236,274,309,347,-341,-311,-280,-238,-198,-148,-100,-50,-3,44,94,142,192,232,275,305,335,-309,-277,-248,-214,-175,-134,-90,-47,-3,41,84,128,170,208,242,271,303,-258,-238,-219,-189,-157,-125,-80,-42,-3,36,74,119,151,183,213,233,252,-215,-197,-176,-148,-115,-79,-54,-28,-3,22,48,73,110,142,170,191,209,-172,-156,-141,-109,-77,-41,-22,-3,16,35,71,103,135,150,166,-125,-93,-41,-3,35,87,119,-79,-41,-3,35,73,-3,-3,-3,-3,-196,-300,-341,-215,190,294,335,209,-79,-198,-238,-214,-91,73,193,233,208,86,-91,-149,86,143]
+    completeyvect = [415,-465,-380,-380,28,28,337,337, 398,402,398,387,372,370,370,372,387,359,346,343,341,337,337,337,337,337,337,337,341,343,346,359,332,324,317,313,311,308,308,308,308,311,313,317,324,332,305,296,291,286,282,279,276,274,273,274,276,279,282,286,291,296,305,252,239,228,219,213,209,205,200,199,200,205,209,213,219,228,239,252,199,176,162,150,143,137,134,129,126,129,134,137,143,150,162,176,199,114,99,86,77,70,64,60,56,52,56,60,64,70,77,86,99,114,28,13,6,1,-5,-10,-16,-18,-21,-18,-16,-10,-5,1,6,13,28,-62,-65,-67,-69,-71,-72,-74,-75,-75,-75,-74,-72,-71,-69,-67,-65,-62,-151,-147,-141,-137,-136,-133,-132,-130,-129,-130,-132,-133,-136,-137,-141,-147,-151,-220,-210,-204,-200,-195,-191,-188,-185,-183,-185,-188,-191,-195,-200,-204,-210,-220,-289,-274,-266,-260,-255,-248,-243,-239,-237,-239,-243,-248,-255,-260,-266,-274,-289,-328,-318,-309,-304,-299,-295,-293,-291,-289,-291,-293,-295,-299,-304,-309,-318,-328,-367,-356,-350,-345,-344,-342,-342,-341,-342,-342,-344,-345,-350,-356,-367,-384,-371,-369,-369,-369,-371,-384,-393,-395,-397,-395,-393,402,-21,-183,-397,345,176,-151,-328,345,176,-151,-328,308,219,1,-200,-293,308,219,1,-200,-293,134,-72,134,-72]
+
+    # figure out coordinates of what we do have
+    origchanlength = len(Channels)
+    chanvect = []
+    xvect = []
+    yvect = []
+    for cChan in range(origchanlength):
+        try:
+            matchindex = completechanlabs.index(Channels[cChan].upper())
+            xvect.append(completexvect[matchindex])
+            yvect.append(completeyvect[matchindex])
+            chanvect.append(Channels[cChan].upper())
+        except:
+            pass
+    origchanlength = len(chanvect)
+
+    if levels > 0:
+        # find potential data
+        overallchanlabs = ['FZ', 'F3', 'F4', 'CZ', 'C3', 'C4', 'PZ', 'P3', 'P4']
+        for cChan in range(len(overallchanlabs)):
+            try:
+                matchindex = chanvect.index(overallchanlabs[cChan].upper())
+            except:
+                # channel is not included
+                matchindex = completechanlabs.index(overallchanlabs[cChan].upper())
+                # find distance between that channel and included channels
+                vectors = []
+                for vChan in range(origchanlength):
+                    vectors.append(vectorlength([completexvect[matchindex], completeyvect[matchindex]], [xvect[vChan],yvect[vChan]]))
+                
+                availvectors = [i for i,v in enumerate(vectors) if v < float(searchlimit)]
+                if len(availvectors) > 2:
+                    # find total distance
+                    sumtot = 0
+                    vectorweights = [0] * len(availvectors)
+                    for vChan in range(len(availvectors)):
+                        vectorweights[vChan] = numpy.subtract(float(searchlimit), vectors[availvectors[vChan]])
+                        sumtot = numpy.add(sumtot, vectorweights[vChan])
+                    # weight each vector based upon distance
+                    for vChan in range(len(availvectors)):
+                        vectorweights[vChan] = numpy.divide(vectorweights[vChan], sumtot)
+                        matchindex = Channels.index(chanvect[availvectors[vChan]])
+                        vectorweights[vChan] = numpy.multiply(Amplitude[matchindex],vectorweights[vChan])
+                    
+                    Channels.append(overallchanlabs[cChan])
+                    Amplitude.append(numpy.sum(numpy.array(vectorweights)))
+                    
+    if levels > 1:
+        origchanlength = len(Channels)
+        chanvect = []
+        xvect = []
+        yvect = []
+        for cChan in range(origchanlength):
+            try:
+                matchindex = completechanlabs.index(Channels[cChan].upper())
+                xvect.append(completexvect[matchindex])
+                yvect.append(completeyvect[matchindex])
+                chanvect.append(Channels[cChan].upper())
+            except:
+                pass
+        origchanlength = len(chanvect)
+        # find potential data
+        overallchanlabs = ['AFZ', 'FCZ', 'CPZ', 'POZ', 'F1', 'F2', 'C1', 'C2', 'P1', 'P2', 'FC3', 'FC4', 'CP1', 'CP2']
+        for cChan in range(len(overallchanlabs)):
+            try:
+                matchindex = chanvect.index(overallchanlabs[cChan].upper())
+            except:
+                # channel is not included
+                matchindex = completechanlabs.index(overallchanlabs[cChan].upper())
+                # find distance between that channel and included channels
+                vectors = []
+                for vChan in range(origchanlength):
+                    vectors.append(vectorlength([completexvect[matchindex], completeyvect[matchindex]], [xvect[vChan],yvect[vChan]]))
+                
+                availvectors = [i for i,v in enumerate(vectors) if v < float(searchlimit)]
+                if len(availvectors) > 2:
+                    # find total distance
+                    sumtot = 0
+                    vectorweights = [0] * len(availvectors)
+                    for vChan in range(len(availvectors)):
+                        vectorweights[vChan] = numpy.subtract(float(searchlimit), vectors[availvectors[vChan]])
+                        sumtot = numpy.add(sumtot, vectorweights[vChan])
+                    # weight each vector based upon distance
+                    for vChan in range(len(availvectors)):
+                        vectorweights[vChan] = numpy.divide(vectorweights[vChan], sumtot)
+                        matchindex = Channels.index(chanvect[availvectors[vChan]])
+                        vectorweights[vChan] = numpy.multiply(Amplitude[matchindex],vectorweights[vChan])
+                    
+                    Channels.append(overallchanlabs[cChan])
+                    Amplitude.append(numpy.sum(numpy.array(vectorweights)))
+                
+    return [Channels, Amplitude]
+
+def eegpad(Channels, Amplitude, searchlimit=500):
+    completechanlabs = ['NZ','IZ','P9','P10','T9','T10','F9','F10', 'FP1','FPZ','FP2','AFP5','AFP3','AFP1','AFP2','AFP4','AFP6','AF7','AF7h','AF5','AF5h','AF3','AF1','AF1h','AFZ','AF2h','AF2','AF4','AF6h','AF6','AF8h','AF8','AFF7','AFF7h','AFF5','AFF5h','AFF3','AFF3h','AFF1h','AFF2h','AFF4h','AFF4','AFF6h','AFF6','AFF8h','AFF8','F7','F7h','F5','F5h','F3','F3h','F1','F1h','FZ','F2h','F2','F4h','F4','F6h','F6','F8h','F8','FFT7','FFT7h','FFC5','FFC5h','FFC3','FFC3h','FFC1','FFC1h','FFCZ','FFC2h','FFC2','FFC4h','FFC4','FFC6h','FFC6','FFT8h','FFT8','FT7','FT7h','FC5','FC5h','FC3','FC3h','FC1','FC1h','FCZ','FC2h','FC2','FC4h','FC4','FC6h','FC6','FT8h','FT8','FTT7','FTT7h','FCC5','FCC5h','FCC3','FCC3h','FCC1','FCC1h','FCCZ','FCC2h','FCC2','FCC4h','FCC4','FCC6h','FCC6','FTT8h','FTT8','T7','T7h','C5','C5h','C3','C3h','C1','C1h','CZ','C2h','C2','C4h','C4','C6h','C6','T8h','T8','TTP7','TTP7h','CCP5','CCP5h','CCP3','CCP3h','CCP1','CCP1h','CCPZ','CCP2h','CCP2','CCP4h','CCP4','CCP6h','CCP6','TTP8h','TTP8','TP7','TP7h','CP5','CP5h','CP3','CP3h','CP1','CP1h','CPZ','CP2h','CP2','CP4h','CP4','CP6h','CP6','TP8h','TP8','TPP7','TPP7h','CPP5','CPP5h','CPP3','CPP3h','CPP1','CPP1h','CPPZ','CPP2h','CPP2','CPP4h','CPP4','CPP6h','CPP6','TPP8h','TPP8','P7','P7h','P5','P5h','P3','P3h','P1','P1h','PZ','P2h','P2','P4h','P4','P6h','P6','P8h','P8','PPO7','PPO7h','PPO5','PPO5h','PPO3','PPO3h','PPO1','PPO1h','PPOZ','PPO2h','PPO2','PPO4h','PPO4','PPO6h','PPO6','PPO8h','PPO8','PO7','PO7h','PO5','PO5h','PO3','PO3h','PO1','POZ','PO2','PO4h','PO4','PO6h','PO6','PO8h','PO8','POO5','POO3','POO1','POOZ','POO2','POO4','POO6','O1','O1h','OZ','O2h','O2','MiPf','MiCe','MiPa','MiOc','LLPf','LLFr','LLTe','LLOc','RLPf','RLFr','RLTe','RLOc','LMPf','LDFr','LDCe','LDPa','LMOc','RMPf','RDFr','RDCe','RDPa','RMOc','LMFr','LMCe','RMFr','RMCe']
+    completechanlabsupper = copy.deepcopy(completechanlabs)
+    completechanlabsupper = [x.upper() for x in completechanlabsupper]
+    completexvect = [-3,-3,-361,355,-380,370,-361,355, -79,-3,73,-148,-97,-42,36,91,142,-216,-182,-148,-113,-79,-57,-34,-3,28,51,73,107,142,176,210,-235,-209,-184,-150,-113,-79,-36,30,73,107,144,178,203,229,-254,-235,-216,-187,-155,-116,-79,-37,-3,31,73,110,149,182,210,230,248,-282,-256,-229,-198,-164,-126,-85,-44,-3,38,79,120,158,193,223,250,276,-309,-278,-245,-211,-178,-134,-91,-47,-3,41,86,128,172,205,238,272,303,-331,-295,-260,-224,-185,-142,-96,-49,-3,44,90,136,179,218,255,289,325,-349,-315,-278,-238,-198,-147,-100,-51,-3,45,94,141,192,233,272,309,343,-352,-315,-280,-243,-199,-149,-100,-52,-3,46,94,143,193,236,274,309,347,-341,-311,-280,-238,-198,-148,-100,-50,-3,44,94,142,192,232,275,305,335,-309,-277,-248,-214,-175,-134,-90,-47,-3,41,84,128,170,208,242,271,303,-258,-238,-219,-189,-157,-125,-80,-42,-3,36,74,119,151,183,213,233,252,-215,-197,-176,-148,-115,-79,-54,-28,-3,22,48,73,110,142,170,191,209,-172,-156,-141,-109,-77,-41,-22,-3,16,35,71,103,135,150,166,-125,-93,-41,-3,35,87,119,-79,-41,-3,35,73,-3,-3,-3,-3,-196,-300,-341,-215,190,294,335,209,-79,-198,-238,-214,-91,73,193,233,208,86,-91,-149,86,143]
+    completeyvect = [415,-465,-380,-380,28,28,337,337, 398,402,398,387,372,370,370,372,387,359,346,343,341,337,337,337,337,337,337,337,341,343,346,359,332,324,317,313,311,308,308,308,308,311,313,317,324,332,305,296,291,286,282,279,276,274,273,274,276,279,282,286,291,296,305,252,239,228,219,213,209,205,200,199,200,205,209,213,219,228,239,252,199,176,162,150,143,137,134,129,126,129,134,137,143,150,162,176,199,114,99,86,77,70,64,60,56,52,56,60,64,70,77,86,99,114,28,13,6,1,-5,-10,-16,-18,-21,-18,-16,-10,-5,1,6,13,28,-62,-65,-67,-69,-71,-72,-74,-75,-75,-75,-74,-72,-71,-69,-67,-65,-62,-151,-147,-141,-137,-136,-133,-132,-130,-129,-130,-132,-133,-136,-137,-141,-147,-151,-220,-210,-204,-200,-195,-191,-188,-185,-183,-185,-188,-191,-195,-200,-204,-210,-220,-289,-274,-266,-260,-255,-248,-243,-239,-237,-239,-243,-248,-255,-260,-266,-274,-289,-328,-318,-309,-304,-299,-295,-293,-291,-289,-291,-293,-295,-299,-304,-309,-318,-328,-367,-356,-350,-345,-344,-342,-342,-341,-342,-342,-344,-345,-350,-356,-367,-384,-371,-369,-369,-369,-371,-384,-393,-395,-397,-395,-393,402,-21,-183,-397,345,176,-151,-328,345,176,-151,-328,308,219,1,-200,-293,308,219,1,-200,-293,134,-72,134,-72]
+
+    # figure out coordinates of what we do have
+    origchanlength = len(Channels)
+    chanvect = []
+    xvect = []
+    yvect = []
+    for cChan in range(origchanlength):
+        try:
+            matchindex = completechanlabs.index(Channels[cChan].upper())
+            xvect.append(completexvect[matchindex])
+            yvect.append(completeyvect[matchindex])
+            chanvect.append(Channels[cChan].upper())
+        except:
+            pass
+    origchanlength = len(chanvect)
+
+    # find potential data
     overallchanlabs = ['NZ', 'IZ', 'F9', 'F10', 'T9', 'T10', 'P9', 'P10']
     for cChan in range(len(overallchanlabs)):
         try:
-            matchindex = Channels.index(overallchanlabs[cChan].upper())
+            matchindex = chanvect.index(overallchanlabs[cChan].upper())
         except:
-            Channels.append(overallchanlabs[cChan])
-            Amplitude.append(0.0)
-    
-    return [Channels, Amplitude]
+            # channel is not included
+            matchindex = completechanlabs.index(overallchanlabs[cChan].upper())
+            # find distance between that channel and included channels
+            vectors = []
+            for vChan in range(origchanlength):
+                vectors.append(vectorlength([completexvect[matchindex], completeyvect[matchindex]], [xvect[vChan],yvect[vChan]]))
+            
+            availvectors = [i for i,v in enumerate(vectors) if v < float(searchlimit)]
+            if len(availvectors) > 2:
+                # find total distance
+                sumtot = 0
+                vectorweights = [0] * len(availvectors)
+                for vChan in range(len(availvectors)):
+                    vectorweights[vChan] = numpy.subtract(float(searchlimit), vectors[availvectors[vChan]])
+                    sumtot = numpy.add(sumtot, vectorweights[vChan])
+                # weight each vector based upon distance
+                for vChan in range(len(availvectors)):
+                    vectorweights[vChan] = numpy.divide(vectorweights[vChan], sumtot)
+                    matchindex = Channels.index(chanvect[availvectors[vChan]])
+                    vectorweights[vChan] = numpy.multiply(Amplitude[matchindex],vectorweights[vChan])
+                
+                Channels.append(overallchanlabs[cChan])
+                Amplitude.append(numpy.sum(numpy.array(vectorweights)))
 
+    return [Channels, Amplitude]
 
 def eggheadplot(Channels, Amplitude, Steps=512, Scale=False, Colormap=False, Method='cubic', Complete=True, Style='Full', TickValues=False, BrainOpacity=0.2, Title=False, Electrodes=True, **kwargs):
 
@@ -210,12 +357,19 @@ def eggheadplot(Channels, Amplitude, Steps=512, Scale=False, Colormap=False, Met
     matplotlib.pyplot.show()
 
 
-def eggheadplot_sub(Channels, Amplitude, ax=None, Steps=512, Scale=False, Colormap=False, Method='cubic', Complete=True, Style='Full', BrainOpacity=0.2, Electrodes=True, **kwargs):
+def eggheadplot_sub(Channels, Amplitude, ax=None, Steps=512, Scale=False, Colormap=False, Method='cubic', Complete=True, Style='Full', BrainOpacity=0.2, Electrodes=True, Pad=True, Contours=False, **kwargs):
     
     Method = checkdefaultsettings(Method, ['cubic', 'linear'])
     Style = checkdefaultsettings(Style, ['Full', 'Outline', 'None'])
     
-    matplotlib.pyplot.sca(ax)
+    realchannels = len(Channels)
+    if Pad != False:
+        [Channels, Amplitude] = eegpad(Channels, Amplitude)
+    if Contours == True:
+        Contours = 5
+    Contours = int(Contours)
+    
+    #matplotlib.pyplot.sca(ax)
     ax.spines['top'].set_visible(False)
     ax.spines['bottom'].set_visible(False)
     ax.spines['left'].set_visible(False)
@@ -309,36 +463,51 @@ def eggheadplot_sub(Channels, Amplitude, ax=None, Steps=512, Scale=False, Colorm
     if Complete:
         zi = fill(zi)
     
+    # gaussian kernal blurring
+    zi = scipy.ndimage.gaussian_filter(copy.deepcopy(numpy.multiply(zi,1.2)), sigma=2.5, order=0)
+    
     # plot the activity
     if Colormap == False:
         Colormap = matplotlib.pyplot.cm.viridis
     contourplot = matplotlib.pyplot.contourf(xi,yi,zi, Steps, cmap=Colormap, vmin=Scale[0], vmax=Scale[1])
+    if Contours != False:
+        contourplotridges = matplotlib.pyplot.contour(xi,yi,zi, Contours, colors='k', alpha=0.15)
     ax.autoscale(False)
+    
     
     if Electrodes != False:
         markervalue = 'k'
         if Electrodes != True:
             markervalue = Electrodes 
         
-        matplotlib.pyplot.plot(numpy.multiply(xvect, 0.85), numpy.add(numpy.multiply(yvect,0.8),-35), linestyle="None", marker = '.', color=markervalue)
+        matplotlib.pyplot.plot(numpy.multiply(xvect[0:realchannels], 0.85), numpy.add(numpy.multiply(yvect[0:realchannels],0.8),-35), linestyle="None", marker = '.', color=markervalue)
         
     extent = numpy.min(x), numpy.max(x), numpy.min(y), numpy.max(y)
     if Style.upper() == ('Full').upper():
         try:
             framemask = matplotlib.image.imread('eggheadplot1.png')
         except:
-            framemask = matplotlib.image.imread('Gentask\Engine\eggheadplot1.png')
+            try:
+                framemask = matplotlib.image.imread('Engine' + os.path.sep + 'eggheadplot1.png')
+            except:
+                framemask = matplotlib.image.imread('Gentask' + os.path.sep + 'Engine' + os.path.sep + 'eggheadplot1.png')
             
     elif Style.upper() == ('Outline').upper():
         try:
             framemask = matplotlib.image.imread('eggheadplot2.png')
         except:
-            framemask = matplotlib.image.imread('Gentask\Engine\eggheadplot2.png')
+            try:
+                framemask = matplotlib.image.imread('Engine' + os.path.sep + 'eggheadplot2.png')
+            except:
+                framemask = matplotlib.image.imread('Gentask' + os.path.sep + 'Engine' + os.path.sep + 'eggheadplot2.png')
     else:
         try:
             framemask = matplotlib.image.imread('eggheadplot3.png')
         except:
-            framemask = matplotlib.image.imread('Gentask\Engine\eggheadplot3.png')
+            try:
+                framemask = matplotlib.image.imread('Engine' + os.path.sep + 'eggheadplot3.png')
+            except:
+                framemask = matplotlib.image.imread('Gentask' + os.path.sep + 'Engine' + os.path.sep + 'eggheadplot3.png')
     
     imgmask = framemask[:,:,0] == framemask[:,:,1];
     framemask[imgmask == 0, 3] = 0      # 100% transparent
@@ -347,7 +516,10 @@ def eggheadplot_sub(Channels, Amplitude, ax=None, Steps=512, Scale=False, Colorm
         try:
             eggbrain = matplotlib.image.imread('eggheadplot4.png')
         except:
-            eggbrain = matplotlib.image.imread('Gentask\Engine\eggheadplot4.png')
+            try:
+                eggbrain = matplotlib.image.imread('Engine' + os.path.sep + 'eggheadplot4.png')
+            except:
+                eggbrain = matplotlib.image.imread('Gentask' + os.path.sep + 'Engine' + os.path.sep + 'eggheadplot4.png')
         
         imgmask = eggbrain[:,:,0] == eggbrain[:,:,1];
         eggbrain[imgmask == 0, 3] = 0      # 100% transparent
@@ -1020,7 +1192,10 @@ def readUnicornBlack(inputfile):
         
         # see if there is behavioral data available
         if (os.path.isfile(head + os.path.sep + tail.split('.')[0] + '.psydat')): 
-            EEG = mergetaskperformance(EEG, head + os.path.sep + tail.split('.')[0] + '.psydat')
+            try:
+                EEG = mergetaskperformance(EEG, head + os.path.sep + tail.split('.')[0] + '.psydat')
+            except:
+                pass
     
         return EEG
     
@@ -1053,81 +1228,101 @@ def mergetaskperformance(EEG, filein):
             if len(stimlistvalue) > 0:
                 stimlistindex = [i for i,v in enumerate(OUTEEG.events[0]) if v > 0]
                 
-                # cycle through event lines
-                currenteventplace = 0
+                psydatlistvalue = []
+                psydatlistindex = []
                 for dinfo in range(6, len(dcontents)):
                     currentline = dcontents[dinfo].split()
                     # make sure it is not the end of the file
                     if not 'taskruntime' in currentline[0]:
                         # make sure that it is an event we want marked
-                        if float(currentline[labline.index('Type')]) != 0:
+                        if not ((float(currentline[labline.index('Type')]) == 0) or (str(currentline[labline.index('Type')]) == 'nan')):
                             # make sure that it is a stimulus
                             if currentline[labline.index('Event')] == 'Stimulus':
-                                # find next event that meets this criteria - shouldnt have to though
-                                while float(currentline[labline.index('Type')]) != float(stimlistvalue[currenteventplace]):
-                                    currenteventplace = currenteventplace + 1
-                                
-                                for lab in labline:
-                                    # find associated list
-                                    currentlabindex = OUTEEG.eventsegments.index(lab)
-                                    sampleindex = stimlistindex[currenteventplace]
-                                    
-                                    if lab in ['Trial','Duration','ISI','ITI','Correct','Latency','ClockLatency','MinRespWin','MaxRespWin']:
-                                        if currentline[labline.index(lab)] != 'nan':
-                                            OUTEEG.events[currentlabindex][sampleindex] = float(currentline[labline.index(lab)])
+                                psydatlistvalue.append(float(currentline[labline.index('Type')]))
+                                psydatlistindex.append(int(dinfo))
+                            
+                matchinglist = []
+                currentEEGeventplace = -1
+                for cDAT in range(0, len(psydatlistvalue)):
+                    templist = []
+                    if currentEEGeventplace < len(stimlistvalue):
+                        ceilingEEGeventplace = currentEEGeventplace + 3
+                        if ceilingEEGeventplace > len(stimlistvalue): 
+                            ceilingEEGeventplace = len(stimlistvalue)
+                        
+                        for cEEG in range((currentEEGeventplace+1), ceilingEEGeventplace):
+                            if float(psydatlistvalue[cDAT]) == float(stimlistvalue[cEEG]):
+                                currentEEGeventplace = cEEG
+                                templist.append(psydatlistindex[cDAT])
+                                templist.append(psydatlistvalue[cDAT])
+                                templist.append(stimlistindex[cEEG])
+                                templist.append(stimlistvalue[cEEG])
+                                matchinglist.append(templist)
+                                break
                 
-                                    if lab in ['Event','Resp','Stimulus']:
-                                        if currentline[labline.index(lab)] != 'nan':
-                                            OUTEEG.events[currentlabindex][sampleindex] = currentline[labline.index(lab)]
-                                
-                                # adjust stimulus type based on accuracy
-                                # Correct Trials are increased by 10,000 
-                                # Error of Commission Trials are increased by 50,000
-                                # Error of Omission Trials are increased by 60,000
-                                # (i.e., type 27 would become 10,027 if correct; 50,027 if an
-                                # incorrect response was made; and 60,027 if an incorrect
-                                # non-response occurred)
-                                if float(currentline[labline.index('Correct')]) == float(1.0):
-                                    # correct trial
-                                    OUTEEG.events[0][sampleindex] = numpy.sum([OUTEEG.events[0][sampleindex], 10000])
-                                elif float(currentline[labline.index('Correct')]) == float(0.0):
-                                    # error trial
-                                    if currentline[labline.index('Resp')] == 'nan':
-                                        # error of omission
-                                        OUTEEG.events[0][sampleindex] = numpy.sum([OUTEEG.events[0][sampleindex], 60000])
-                                    else:
-                                        # error of comission
-                                        OUTEEG.events[0][sampleindex] = numpy.sum([OUTEEG.events[0][sampleindex], 50000])
-                                
-                                # add response event information
-                                # Correct Response are 2500
-                                # Error of Commission Resonse are 3500
-                                if currentline[labline.index('Resp')] != 'nan':
-                                    if currentline[labline.index('Latency')] != 'nan':
-                                        
-                                        # RT in ms / 1000 times the sample rate gives you the number of samples
-                                        backsample = int(numpy.floor(numpy.multiply(numpy.divide(float(currentline[labline.index('Latency')]),1000), float(OUTEEG.srate))))
-                                        boolnumeric = True
-                                        try:
-                                            float(currentline[labline.index('Resp')])
-                                        except:
-                                            boolnumeric = False
-                                        
-                                        if float(currentline[labline.index('Correct')]) == float(1.0):
-                                            if boolnumeric:
-                                                OUTEEG.events[0][sampleindex+backsample] = numpy.add(float(currentline[labline.index('Resp')]), float(1190.0))
-                                            else:
-                                                OUTEEG.events[0][sampleindex+backsample] = float(1191.0)
-                                        else:
-                                            if boolnumeric:
-                                                OUTEEG.events[0][sampleindex+backsample] = numpy.add(float(currentline[labline.index('Resp')]), float(2190.0))
-                                            else:
-                                                OUTEEG.events[0][sampleindex+backsample] = float(2191.0)
-                                        OUTEEG.events[OUTEEG.eventsegments.index('Event')][sampleindex+backsample] = 'Response'
-                                        OUTEEG.events[OUTEEG.eventsegments.index('Trial')][sampleindex+backsample] = float(currentline[labline.index('Trial')])
+                # cycle through 
+                for cE in range(0, len(matchinglist)):
+                    # snag line
+                    currentline = dcontents[matchinglist[cE][0]].split()
+                    sampleindex = matchinglist[cE][2]
+                    for lab in labline:
+                        # find associated list
+                        currentlabindex = OUTEEG.eventsegments.index(lab)
                                     
-                                # increment events to next mark
-                                currenteventplace = currenteventplace + 1
+                        if lab in ['Trial','Duration','ISI','ITI','Correct','Latency','ClockLatency','MinRespWin','MaxRespWin']:
+                            if currentline[labline.index(lab)] != 'nan':
+                                OUTEEG.events[currentlabindex][sampleindex] = float(currentline[labline.index(lab)])
+    
+                        if lab in ['Event','Resp','Stimulus']:
+                            if currentline[labline.index(lab)] != 'nan':
+                                OUTEEG.events[currentlabindex][sampleindex] = currentline[labline.index(lab)]
+                
+                    # adjust stimulus type based on accuracy
+                    # Correct Trials are increased by 10,000 
+                    # Error of Commission Trials are increased by 50,000
+                    # Error of Omission Trials are increased by 60,000
+                    # (i.e., type 27 would become 10,027 if correct; 50,027 if an
+                    # incorrect response was made; and 60,027 if an incorrect
+                    # non-response occurred)
+                    if float(currentline[labline.index('Correct')]) == float(1.0):
+                        # correct trial
+                        OUTEEG.events[0][sampleindex] = numpy.sum([OUTEEG.events[0][sampleindex], 10000])
+                    elif float(currentline[labline.index('Correct')]) == float(0.0):
+                        # error trial
+                        if currentline[labline.index('Resp')] == 'nan':
+                            # error of omission
+                            OUTEEG.events[0][sampleindex] = numpy.sum([OUTEEG.events[0][sampleindex], 60000])
+                        else:
+                            # error of comission
+                            OUTEEG.events[0][sampleindex] = numpy.sum([OUTEEG.events[0][sampleindex], 50000])
+                   
+                    # add response event information
+                    # Correct Response are 1190
+                    # Error of Commission Resonse are 2190
+                    if currentline[labline.index('Resp')] != 'nan':
+                        if currentline[labline.index('Latency')] != 'nan':
+                            
+                            # RT in ms / 1000 times the sample rate gives you the number of samples
+                            backsample = int(numpy.floor(numpy.multiply(numpy.divide(float(currentline[labline.index('Latency')]),1000), float(OUTEEG.srate))))
+                            boolnumeric = True
+                            try:
+                                float(currentline[labline.index('Resp')])
+                            except:
+                                boolnumeric = False
+                            
+                            if float(currentline[labline.index('Correct')]) == float(1.0):
+                                if boolnumeric:
+                                    OUTEEG.events[0][sampleindex+backsample] = numpy.add(float(currentline[labline.index('Resp')]), float(1190.0))
+                                else:
+                                    OUTEEG.events[0][sampleindex+backsample] = float(1191.0)
+                            else:
+                                if boolnumeric:
+                                    OUTEEG.events[0][sampleindex+backsample] = numpy.add(float(currentline[labline.index('Resp')]), float(2190.0))
+                                else:
+                                    OUTEEG.events[0][sampleindex+backsample] = float(2191.0)
+                            OUTEEG.events[OUTEEG.eventsegments.index('Event')][sampleindex+backsample] = 'Response'
+                            OUTEEG.events[OUTEEG.eventsegments.index('Trial')][sampleindex+backsample] = float(currentline[labline.index('Trial')])
+                        
         
         return OUTEEG
     else:
@@ -1245,11 +1440,16 @@ def extractamplitude(EEG, Window=False, Approach=False):
                 
     return outputvalues
 
-def extractpeaks(EEG, Window=False, Points=False):
+def extractpeaks(EEG, Window=False, Points=False, Direction=False, Surround=False):
+    Direction = checkdefaultsettings(Direction, ['max', 'min'])
     
     if Points == False:
         Points = 9
-    Points = int(Points)    
+    Points = int(Points)
+    
+    if Surround == False:
+        Surround = 0
+    Surround = int(Surround)
     
     if Window != False:
         startindex = int(closestidx(EEG.times, float(Window[0])))
@@ -1269,12 +1469,31 @@ def extractpeaks(EEG, Window=False, Points=False):
                 maxthresh = 0.99
                 outpoint = []
                 while len(outpoint) == 0:
-                    outpoint = peakutils.indexes(EEG.data[cC][cE][startindex:stopindex], thres=float(maxthresh), min_dist=int(Points))
-                    maxthresh = numpy.subtract(maxthresh, 0.01)
-                    if (maxthresh < 0.5):
-                        outpoint = [0]              
+                    searchdata = EEG.data[cC][cE][startindex:stopindex]                    
+                    if Direction == 'min':
+                        searchdata = numpy.multiply(searchdata, -1)
+                    try:        
+                        outpoint = peakutils.indexes(searchdata, thres=float(maxthresh), min_dist=int(Points))
+                    except:
+                        outpoint = []
+                    if len(outpoint) == 0:
+                        maxthresh = numpy.subtract(maxthresh, 0.01)
+                        if (maxthresh < 0.5):
+                            outpoint = [0]              
                 
-                currentepochamplitude.append(EEG.data[cC][cE][startindex + outpoint[0]])
+                trialamp = numpy.nan
+                if Surround == 0:
+                    trialamp = EEG.data[cC][cE][startindex + outpoint[0]]
+                else:
+                    winbeg = numpy.subtract(numpy.add(float(startindex), float(outpoint[0])), float(Surround))
+                    if winbeg < float(0.0):
+                        winbeg == 0
+                    winend = numpy.add(numpy.add(float(startindex), float(outpoint[0])), float(Surround))
+                    if winend > len(EEG.times):
+                        winend == len(EEG.times)
+                    trialamp = numpy.mean(EEG.data[cC][cE][int(winbeg):int(winend)])
+
+                currentepochamplitude.append(trialamp)
                 currentepochlatency.append(EEG.times[startindex + outpoint[0]])
                 
             outputamplitude.append(currentepochamplitude)
@@ -1284,12 +1503,32 @@ def extractpeaks(EEG, Window=False, Points=False):
             maxthresh = 0.99
             outpoint = []
             while len(outpoint) == 0:
-                outpoint = peakutils.indexes(EEG.data[cC][startindex:stopindex], thres=float(maxthresh), min_dist=int(Points))
-                maxthresh = numpy.subtract(maxthresh, 0.01)
-                if (maxthresh < 0.5):
-                    outpoint = [0]
+                
+                searchdata = EEG.data[cC][startindex:stopindex]                    
+                if Direction == 'min':
+                    searchdata = numpy.multiply(searchdata, -1)
+                try:
+                    outpoint = peakutils.indexes(searchdata, thres=float(maxthresh), min_dist=int(Points))
+                except:
+                    outpoint = []
+                if len(outpoint) == 0:
+                    maxthresh = numpy.subtract(maxthresh, 0.01)
+                    if (maxthresh < 0.5):
+                        outpoint = [0]
             
-            outputamplitude.append(EEG.data[cC][startindex + outpoint[0]])
+            trialamp = numpy.nan
+            if Surround == 0:
+                trialamp = EEG.data[cC][startindex + outpoint[0]]
+            else:
+                winbeg = numpy.subtract(numpy.add(float(startindex), float(outpoint[0])), float(Surround))
+                if winbeg < float(0.0):
+                    winbeg == 0
+                winend = numpy.add(numpy.add(float(startindex), float(outpoint[0])), float(Surround))
+                if winend > len(EEG.times):
+                    winend == len(EEG.times)
+                trialamp = numpy.mean(EEG.data[cC][int(winbeg):int(winend)])
+                
+            outputamplitude.append(trialamp)
             outputlatency.append(EEG.times[startindex + outpoint[0]])
             
     return [outputamplitude, outputlatency]
@@ -1788,48 +2027,220 @@ def simpleepoch(EEG, Window=False, Types=False):
 ################################################################################################################################################
 ################################################################################################################################################
 ################################################################################################################################################
+
+def netdeflectiondetection(EEG, Threshold=False, Direction=False, Window=False, Approach=False, Channel=False):
+    # function to reject trials that have net activity beyond the specified level
+    # only updates the EEG.reject status with 4 for netdeflection
+    OUTEEG = copy.deepcopy(EEG)
+    if Threshold == False:
+        Threshold = 0.0
+    Direction = checkdefaultsettings(Direction, ['negative', 'positive'])
+    Approach = checkdefaultsettings(Approach, ['median', 'mean'])
+    if OUTEEG.trials > 0:
+        cortab = [0] * OUTEEG.trials
+        
+        if Window==False:
+            startindex = 1
+            stopindex = -1
+        else:
+            startindex = closestidx(EEG.times, float(Window[0]))
+            stopindex = closestidx(EEG.times, float(Window[1]))
+        
+        if Channel != False:
+            EEG = collapsechannels(EEG, Channels = Channel, NewChannelName='HOTSPOT', Approach=Approach)
+            cC = EEG.channels.index('HOTSPOT')
+            # loop through each event
+            for cE in range(EEG.trials):
+                if Approach == 'median':
+                    corr1 = numpy.median(EEG.data[cC][cE][startindex:stopindex])
+                else:
+                    corr1 = numpy.mean(EEG.data[cC][cE][startindex:stopindex])
+                cortab[cE] = corr1
+                
+            
+        else:
+            # loop through each event
+            for cE in range(EEG.trials):
+                chancortab = [numpy.nan] * EEG.nbchan
+                for cC in range(EEG.nbchan):    
+                    if Approach == 'median':
+                        corr1 = numpy.median(EEG.data[cC][cE][startindex:stopindex])
+                    else:
+                        corr1 = numpy.mean(EEG.data[cC][cE][startindex:stopindex])
+                    chancortab[cC] = corr1
+                cortab[cE] = numpy.median(chancortab)
+                    
+        acceptedtrials = 0
+        cdiff = 0
+        while ((acceptedtrials < 5) and (cdiff < 400)) :
+            OUTEEGtemp = copy.deepcopy(OUTEEG)
+               
+            for cE in range(OUTEEGtemp.trials): 
+                if Direction == 'negative':
+                    if corr1 < Threshold:
+                        OUTEEGtemp.reject[cE] = 4
+                else:
+                    if corr1 > Threshold:
+                        OUTEEGtemp.reject[cE] = 4
+            
+            if Direction == 'negative':
+                Threshold = numpy.subtract(Threshold, 0.001)
+            else:
+                Threshold = numpy.add(Threshold, 0.001)
+            cdiff = cdiff + 1
+            acceptedtrials = len([v for i,v in enumerate(OUTEEGtemp.reject) if v == 0])
+        
+        OUTEEG = copy.deepcopy(OUTEEGtemp)
+                    
+    OUTEEG.acceptedtrials = len([v for i,v in enumerate(OUTEEG.reject) if v == 0])             
+    return OUTEEG
+
+def antiphasedetection(EEG, Threshold=False, Window=False, Approach=False, Channel=False, Template=[], Mode=False):
+    # function to reject trials that are out of phase with the mean activity within the specified window
+    # only updates the EEG.reject status with 3 for antiphase
+    if Threshold == False:
+        Threshold = 0.1
+    Approach = checkdefaultsettings(Approach, ['median', 'mean'])
+    Mode = checkdefaultsettings(Mode, ['both', 'add', 'remove'])
     
-def voltagethreshold(EEG, Threshold=False, Step=False, NaN=True):
+    # see if there is anything to work with
+    acceptedtrials = len([v for i,v in enumerate(EEG.reject) if v == 0])
+    if acceptedtrials == 0:
+        EEG.reject = [0] * len(EEG.reject) # acccept everything and go on
+    
+    OUTEEG = copy.deepcopy(EEG)
+
+    if OUTEEG.trials > 0:
+        cortab = [0] * OUTEEG.trials
+        
+        # obtain average data for comparison
+        if Channel != False:
+            EEG = collapsechannels(EEG, Channels = Channel, NewChannelName='HOTSPOT', Approach=Approach)
+        EEGcomp = simpleaverage(EEG, Approach = Approach)
+        if Window==False:
+            startindex = 1
+            stopindex = -1
+        else:
+            startindex = closestidx(EEG.times, float(Window[0]))
+            stopindex = closestidx(EEG.times, float(Window[1]))
+        
+        if len(Template) == 0:
+            
+            if Channel == False:
+                # loop through each event
+                for cE in range(EEG.trials):
+                    chancortab = [numpy.nan] * EEG.nbchan
+                    # loop through each channel
+                    for cC in range(EEG.nbchan):
+                        corr1 = 0
+                        corr1, _ = pearsonr(EEGcomp.data[cC][startindex:stopindex], EEG.data[cC][cE][startindex:stopindex])
+                        chancortab[cC] = corr1
+                    cortab[cE] = numpy.median(chancortab)
+                    
+            else: 
+                cC = EEG.channels.index('HOTSPOT')
+                # loop through each event
+                for cE in range(EEG.trials):
+                    corr1 = 0
+                    corr1, _ = pearsonr(EEGcomp.data[cC][startindex:stopindex], EEG.data[cC][cE][startindex:stopindex])
+                    cortab[cE] = corr1
+                    
+        else:
+            # a template was provided for reference
+            if Channel == False:
+                # loop through each event
+                for cE in range(EEG.trials):
+                    chancortab = [numpy.nan] * EEG.nbchan
+                    # loop through each channel
+                    for cC in range(EEG.nbchan):
+                        corr1 = 0
+                        corr1, _ = pearsonr(Template, EEG.data[cC][cE][startindex:stopindex])
+                        chancortab[cC] = corr1
+                    cortab[cE] = numpy.median(chancortab)
+
+            else: 
+                cC = EEG.channels.index('HOTSPOT')
+                # loop through each event
+                for cE in range(EEG.trials):
+                    corr1 = 0
+                    corr1, _ = pearsonr(Template, EEG.data[cC][cE][startindex:stopindex])
+                    cortab[cE] = corr1
+                    
+        acceptedtrials = 0
+        cdiff = 0
+        while ((acceptedtrials < 5) and (cdiff < 400)) :
+            OUTEEGtemp = copy.deepcopy(OUTEEG)
+               
+            for cE in range(OUTEEGtemp.trials): 
+                if Mode != 'add':
+                    if cortab[cE] < Threshold:
+                        OUTEEGtemp.reject[cE] = 3
+                if Mode != 'remove':
+                    if cortab[cE] >= Threshold:
+                        OUTEEGtemp.reject[cE] = 0
+            
+            Threshold = numpy.subtract(Threshold, 0.001)
+            cdiff = cdiff + 1
+            acceptedtrials = len([v for i,v in enumerate(OUTEEGtemp.reject) if v == 0])
+        
+        OUTEEG = copy.deepcopy(OUTEEGtemp)
+                    
+    OUTEEG.acceptedtrials = len([v for i,v in enumerate(OUTEEG.reject) if v == 0])
+    return OUTEEG
+
+def voltagethreshold(EEG, Threshold=False, Step=False, NaN=True, Flip=0):
     # function to screen epoched data for voltages or voltage steps that exceed particular thresholds
     # only updates the EEG.reject status with 1 for voltage threshold and 2 for voltage step
+    acceptedtrials = len([v for i,v in enumerate(EEG.reject) if v == 0])
+    if acceptedtrials == 0:
+        EEG.reject = [0] * len(EEG.reject) # acccept everything and go on
+    else:
+        origreject = copy.deepcopy(EEG.reject)
 
     OUTEEG = copy.deepcopy(EEG)
     
     if OUTEEG.trials > 0:
-    
-        if Threshold != False:
-            for cC in range(EEG.nbchan):
-                currentchanneldata = EEG.data[cC]
-                for cE in range(len(currentchanneldata)):
-                    # check high
-                    check = [i for i in currentchanneldata[cE] if i >= float(Threshold[1])]
-                    if len(check) > 0:
-                        OUTEEG.reject[cE] = 1
-                    # check low
-                    check = [i for i in currentchanneldata[cE] if i <= float(Threshold[0])]
-                    if len(check) > 0:
-                        OUTEEG.reject[cE] = 1
-            
-        if Step != False:
-            for cC in range(EEG.nbchan):
-                currentchanneldata = EEG.data[cC]
-                for cE in range(len(currentchanneldata)):
-                    check = [i for i in abs(numpy.diff(currentchanneldata[cE])) if i >= float(Step)]
-                    if len(check) > 0:
-                        OUTEEG.reject[cE] = 2
-                        
-        if NaN != False:
-            for cC in range(EEG.nbchan):
-                for cE in range(len(currentchanneldata)):
-                    # if the entire epoch is nan
-                    if len(EEG.data[cC][cE]) == numpy.count_nonzero(numpy.isnan(EEG.data[cC][cE])):
-                        OUTEEG.reject[cE] = 4
-                        
-                    # if the entire epoch is zero
-                    if len(EEG.data[cC][cE]) == (len(EEG.data[cC][cE]) - numpy.count_nonzero(EEG.data[cC][cE])):
-                        OUTEEG.reject[cE] = 4
+
+        for cC in range(EEG.nbchan):
+            currentchanneldata = EEG.data[cC]
+            for cE in range(len(currentchanneldata)):
+                # check high
+                check = [i for i in currentchanneldata[cE] if i >= float(Threshold[1])]
+                if len(check) > 0:
+                    OUTEEG.reject[cE] = 1
+                # check low
+                check = [i for i in currentchanneldata[cE] if i <= float(Threshold[0])]
+                if len(check) > 0:
+                    OUTEEG.reject[cE] = 1
+        
+        for cC in range(EEG.nbchan):
+            currentchanneldata = EEG.data[cC]
+            for cE in range(len(currentchanneldata)):
+                check = [i for i in abs(numpy.diff(currentchanneldata[cE])) if i >= float(Step)]
+                if len(check) > 0:
+                    OUTEEG.reject[cE] = 2
+             
+        for cC in range(EEG.nbchan):
+            for cE in range(len(currentchanneldata)):
+                # if the entire epoch is nan
+                if len(EEG.data[cC][cE]) == numpy.count_nonzero(numpy.isnan(EEG.data[cC][cE])):
+                    OUTEEG.reject[cE] = 4
+                    
+                # if the entire epoch is zero
+                if len(EEG.data[cC][cE]) == (len(EEG.data[cC][cE]) - numpy.count_nonzero(EEG.data[cC][cE])):
+                    OUTEEG.reject[cE] = 4
                         
 
+    OUTEEG.acceptedtrials = len([v for i,v in enumerate(OUTEEG.reject) if v == 0])
+    if OUTEEG.acceptedtrials == 0:
+        if Flip == 0:
+            # backflip
+            Threshold = numpy.multiply(Threshold, 1.5)
+            Step = numpy.multiply(Step, 2)
+            OUTEEG = voltagethreshold(EEG, Threshold=Threshold, Step=Step, NaN=NaN, Flip=1)
+        else:
+            OUTEEG.reject = copy.deepcopy(origreject)
+        
     return OUTEEG
 
 def simplezwave(EEG, BaselineWindow=False, ddof=1):
@@ -2772,8 +3183,27 @@ def createsignal(Window, Latency, Amplitude, Width, Shape, Smoothing, OverallSmo
 ################################################################################################################################################
 ################################################################################################################################################
     
+def centershift(invect):
+    newmin = min(invect)
+    newmax = max(invect)
+    
+    newmin = numpy.floor(numpy.multiply(newmin, 0.8))
+    newmax = numpy.ceil(numpy.multiply(newmax, 0.8))
+    if (numpy.subtract(newmax, newmin) < float(1.0)):
+        newmin = numpy.subtract(newmin, 0.5)
+        newmax = numpy.add(newmax, 0.5)
+    
+    return [newmin, newmax]
 
-
+def determinerescale(invect, newvect):
+    outvect = copy.deepcopy(invect)
+    for cA in range(len(newvect)):
+        if float(newvect[cA]) < float(outvect[0]):
+            outvect[0] = float(newvect[cA])
+        if float(newvect[cA]) > float(outvect[1]):
+            outvect[1] = float(newvect[cA])
+    
+    return outvect
 
 
 class barplotprep():
@@ -2784,7 +3214,31 @@ class barplotprep():
         self.scale = [0, 100]
         self.biggerisbetter = True
         self.unit = ''
-        self.width = 0.5
+        self.width = 0.5 
+      
+class eggheadplotprep():
+    def __init__(self):
+        self.title = ''
+        self.channels = ['']
+        self.amplitudes = [0]
+        self.scale = [0, 100]
+        self.steps = 256
+        self.opacity = 0.2
+        self.colormap = None
+
+class waveformplotprep():
+    def __init__(self):
+        self.title = ''
+        self.x = [0]
+        self.y = [0]
+        self.linestyle = 'solid'
+        self.linecolor =  None
+        self.lineweight = 2
+        self.fillbetween = None
+        self.fillbetweencolor = 'k'
+        self.fillbetweenopacity = 0.6
+        self.fillwindow = None  
+        
 
 def wavesubplot(waves, scale=None, ax=None, colorscale=None, positivedown=False):
     
@@ -2802,7 +3256,8 @@ def wavesubplot(waves, scale=None, ax=None, colorscale=None, positivedown=False)
                     waves[cA].linecolor = colorscale(cA)
                     
         else:
-            segs = ['#1CD496', '#2A60EB', '#A91CD4', '#F65A3D'] 
+            #segs = ['#1CD496', '#2A60EB', '#A91CD4', '#F65A3D'] 
+            segs = ['#EF6F63', '#EF9A35', '#3D5E73', '#999999', '#004F39']
             for cA in range(len(waves)):
                 if waves[cA].linecolor == None:
                     waves[cA].linecolor = segs[cA]
@@ -2818,7 +3273,7 @@ def wavesubplot(waves, scale=None, ax=None, colorscale=None, positivedown=False)
             tempmax = waves[cA].x[-1]
             
         
-    matplotlib.pyplot.sca(ax)
+    #matplotlib.pyplot.sca(ax)
     ax.spines['top'].set_visible(False)
     ax.spines['bottom'].set_visible(True)
     ax.spines['left'].set_visible(True)
@@ -2842,8 +3297,7 @@ def wavesubplot(waves, scale=None, ax=None, colorscale=None, positivedown=False)
         ax.plot(waves[cA].x, waves[cA].y, color = waves[cA].linecolor, linestyle = waves[cA].linestyle, linewidth = waves[cA].lineweight, label=waves[cA].title)
 
     for cA in range(len(waves)):
-        if waves[cA].fillbetween != None:
-            
+        if (waves[cA].fillbetween != None) and (waves[cA].fillbetween != 'ZeroP') and (waves[cA].fillbetween != 'ZeroN'):
             targ = 0
             for cAT in range(len(waves)):
                 if waves[cAT].title == waves[cA].fillbetween:
@@ -2857,6 +3311,25 @@ def wavesubplot(waves, scale=None, ax=None, colorscale=None, positivedown=False)
                 
             ax.fill_between(waves[cA].x[winstart:winstop], waves[cA].y[winstart:winstop], waves[targ].y[winstart:winstop], color=waves[cA].fillbetweencolor, alpha=waves[cA].fillbetweenopacity)
         
+        if (waves[cA].fillbetween == 'ZeroP') or (waves[cA].fillbetween == 'ZeroN'):
+            ref = [0] * len(waves[cA].x)
+            for cI in range(0, len(ref)):
+                if (waves[cA].fillbetween == 'ZeroP') and (float(waves[cA].y[cI]) <= float(0)):
+                    ref[cI] = float(waves[cA].y[cI])
+                if (waves[cA].fillbetween == 'ZeroN') and (float(waves[cA].y[cI]) >= float(0)):
+                    ref[cI] = float(waves[cA].y[cI])
+                    
+            winstart = 0
+            winstop = -1
+            if waves[cA].fillwindow != None:
+                winstart = closestidx(waves[cA].x, waves[cA].fillwindow[0])
+                winstop = closestidx(waves[cA].x, waves[cA].fillwindow[1])
+            
+            ax.fill_between(waves[cA].x[winstart:winstop], waves[cA].y[winstart:winstop], ref[winstart:winstop], color=waves[cA].fillbetweencolor, alpha=waves[cA].fillbetweenopacity)
+        
+        
+        
+        
     if scale != None:
         matplotlib.pyplot.ylim(scale)
     
@@ -2866,7 +3339,7 @@ def wavesubplot(waves, scale=None, ax=None, colorscale=None, positivedown=False)
     matplotlib.pyplot.legend();
         
 
-def barsubplot(values, scale, ax=None, width=None, colorscale=None, units=None, title=None, labels=None, plotvalue=True, biggerisbetter=True, alternatelabelsat=3):
+def barsubplot(values, scale, ax=None, width=None, colorscale=None, units=None, title=None, labels=None, plotvalue=True, biggerisbetter=True, alternatelabelsat=3, axfontsize=16, labelfontsize=16, valuefontsize=10):
     #barsubplot(values = [700, numpy.nan, 60], scale = [80, 600], biggerisbetter = False, labels = ['Target', 'Nontarget', 'Reference'], units = ' ms', title = 'Speed', plotvalue = True, colorscale = None, width = 0.4)
     
     if title == None:
@@ -2891,10 +3364,12 @@ def barsubplot(values, scale, ax=None, width=None, colorscale=None, units=None, 
     if colorscale == None:
         #colorscale = crushparula(100)
         #colorscale = colorscale.reversed()
-        segs = ['#4CC700', '#53E6E3', '#DDDEF4', '#E273F5', '#D13608'] 
+        #segs = ['#4CC700', '#53E6E3', '#DDDEF4', '#E273F5', '#D13608'] 
+        segs = ['#004F39', '#3D5E73', '#999999', '#EF9A35', '#EF6F63'] 
         colorscale = LinearSegmentedColormap.from_list("", segs, 100) 
         colorscale = colorscale.reversed()
         
+    continuouscolorscale = False
         
     colorvalues = [0] * len(values)
     scaledvalues = [0] * len(values)
@@ -2909,7 +3384,19 @@ def barsubplot(values, scale, ax=None, width=None, colorscale=None, units=None, 
             if scaledvalues[cT] > 100:
                 scaledvalues[cT] = 100
             
-            colorvalues[cT] = colorscale(int(round(scaledvalues[cT],0)))
+            if continuouscolorscale:
+                colorvalues[cT] = colorscale(int(round(scaledvalues[cT],0)))
+            else:
+                if scaledvalues[cT] > 80:
+                    colorvalues[cT] = colorscale(100)
+                elif scaledvalues[cT] > 60:
+                    colorvalues[cT] = colorscale(75)
+                elif scaledvalues[cT] > 40:
+                    colorvalues[cT] = colorscale(50)
+                elif scaledvalues[cT] > 20:
+                    colorvalues[cT] = colorscale(25)
+                elif scaledvalues[cT] <= 20:
+                    colorvalues[cT] = colorscale(0)
         else:
             colorvalues[cT] = colorscale(0)
     
@@ -2918,7 +3405,7 @@ def barsubplot(values, scale, ax=None, width=None, colorscale=None, units=None, 
         if len(labels[cT]) > 10:
             labels[cT] = labels[cT][0:10]
         
-    matplotlib.pyplot.sca(ax)
+    #matplotlib.pyplot.sca(ax)
     ax.spines['top'].set_visible(False)
     ax.spines['bottom'].set_visible(True)
     ax.spines['left'].set_visible(False)
@@ -2936,7 +3423,7 @@ def barsubplot(values, scale, ax=None, width=None, colorscale=None, units=None, 
     
     #ax.patch.set_facecolor('#FFFFFF')
     
-    ax.set_title(title, color='black', fontweight='bold', fontsize=16)
+    ax.set_title(title, color='black', fontweight='bold', fontsize=axfontsize)
     x_pos = numpy.arange(len(values))
     
     # plot scaled values
@@ -2956,40 +3443,16 @@ def barsubplot(values, scale, ax=None, width=None, colorscale=None, units=None, 
                 else:
                     alternator = True
             
-            ax.text(subxloc, subyloc, str(labels[cT]), color='black', fontweight='bold', fontsize=16, ha='center', va='center')
+            ax.text(subxloc, subyloc, str(labels[cT]), color='black', fontweight='bold', fontsize=labelfontsize, ha='center', va='center')
         
             if plotvalue:
                 tempstringout = str(round(values[cT],1)) + units
-                ax.text(subxloc, numpy.add(scaledvalues[cT],2), tempstringout, color='black', fontweight='bold', fontsize=10, ha='center', va='center')
+                ax.text(subxloc, numpy.add(scaledvalues[cT],2), tempstringout, color='black', fontweight='bold', fontsize=valuefontsize, ha='center', va='center')
         
-    
-    matplotlib.pyplot.show()
 
 
-class eggheadplotprep():
-    def __init__(self):
-        self.title = ''
-        self.channels = ['']
-        self.amplitudes = [0]
-        self.scale = [0, 100]
-        self.steps = 256
-        self.opacity = 0.2
-        self.colormap = None
 
-class waveformplotprep():
-    def __init__(self):
-        self.title = ''
-        self.x = [0]
-        self.y = [0]
-        self.linestyle = 'solid'
-        self.linecolor =  None
-        self.lineweight = 2
-        self.fillbetween = None
-        self.fillbetweencolor = 'k'
-        self.fillbetweenopacity = 0.1
-        self.fillwindow = None
-
-def reportingwindow(eggs=None, waveforms=None, bars=None, alternatelabelsat=2, colormap=None, tickvalues=None, waveformscale=None, waveformpositivedown=True):
+def reportingwindow(fig, eggs=None, waveforms=None, bars=None, alternatelabelsat=2, colormap=None, tickvalues=None, waveformscale=None, waveformpositivedown=True, fileout=None):
     
     if eggs != None or waveforms != None or bars != None:
         
@@ -2999,7 +3462,7 @@ def reportingwindow(eggs=None, waveforms=None, bars=None, alternatelabelsat=2, c
         #    fullstyle = True
         
         #if fullstyle:
-        fig = matplotlib.pyplot.figure(figsize=(20, 12))
+        #fig = matplotlib.pyplot.figure(figsize=(20, 12))
         #else:
         #    fig = matplotlib.pyplot.figure(figsize=(20, 8))
             
@@ -3015,12 +3478,9 @@ def reportingwindow(eggs=None, waveforms=None, bars=None, alternatelabelsat=2, c
         
         # Egg head plots
         if eggs != None:
-            if colormap == None:
-                colormap = matplotlib.pyplot.cm.viridis
+            
             if tickvalues == None:
                 tickvalues = matplotlib.ticker.AutoLocator()
-            
-            norm = matplotlib.colors.Normalize(vmin=eggs[0].scale[0], vmax=eggs[0].scale[1])
         
             # determine arrangement
             nrow = 1;
@@ -3031,16 +3491,29 @@ def reportingwindow(eggs=None, waveforms=None, bars=None, alternatelabelsat=2, c
                 nrow = int(numpy.ceil(numpy.divide(len(eggs),4)))
                 ncol = 4
             
+            axfontsize=16
+            cmsizey=0.015
+            cmsizex=0.12
+            if ncol > 2:
+                axfontsize = axfontsize-3
+                cmsizey=0.01
+                cmsizex=0.10
+            
             axhead = ax[0, 0].subgridspec(nrow, ncol, wspace=0.4, hspace=0.05)            
             for cA in range(len(eggs)):
-                axheadsub = fig.add_subplot(axhead[0, cA])   
-                eggheadplot_sub(eggs[cA].channels, eggs[cA].amplitudes, axheadsub, Steps=eggs[cA].steps, Scale=eggs[cA].scale, Colormap=colormap, BrainOpacity=eggs[cA].opacity)
-                axheadsub.set_title(eggs[cA].title + '\n', color='black', fontweight='bold', fontsize=16, ha='center', va='center')
+                if eggs[cA].colormap == None:
+                    #eggs[cA].colormap = matplotlib.pyplot.cm.viridis
+                    eggs[cA].colormap = crushparula(256)
                 
-            pos1 = axheadsub.get_position()
-            cbar_ax = fig.add_axes([0.225, pos1.y0-0.05, 0.15, 0.02])
-            fig.colorbar(matplotlib.cm.ScalarMappable(cmap=colormap, norm=norm), cax=cbar_ax, orientation='horizontal', ticks=tickvalues)
-        
+                axheadsub = fig.add_subplot(axhead[0, cA])  
+                
+                eggheadplot_sub(eggs[cA].channels, eggs[cA].amplitudes, axheadsub, Steps=eggs[cA].steps, Scale=eggs[cA].scale, Colormap=eggs[cA].colormap, BrainOpacity=eggs[cA].opacity)
+                axheadsub.set_title(eggs[cA].title + '\n', color='black', fontweight='bold', fontsize=axfontsize, ha='center', va='center')
+                    
+                pos1 = axheadsub.get_position()
+                norm = matplotlib.colors.Normalize(vmin=eggs[cA].scale[0], vmax=eggs[cA].scale[1])
+                fig.colorbar(matplotlib.cm.ScalarMappable(cmap=eggs[cA].colormap, norm=norm), cax=fig.add_axes([pos1.x0+0.015, pos1.y0-0.05, cmsizex, cmsizey]), orientation='horizontal', ticks=matplotlib.ticker.AutoLocator())
+            
         # Waveforms
         if waveforms != None:
             axwave = fig.add_subplot(ax[0, 1])
@@ -3052,13 +3525,78 @@ def reportingwindow(eggs=None, waveforms=None, bars=None, alternatelabelsat=2, c
             nrow = 1;
             ncol = len(bars)
             axbar = ax[1, 0:2].subgridspec(nrow, ncol, wspace=0.4, hspace=0.0)
+            
+            axfontsize=16
+            if ncol > 5:
+                axfontsize = axfontsize-3
+                
+            labelfontsize=16
+            if ncol > 5:
+                labelfontsize=labelfontsize-4
+                
+            valuefontsize=10
+            if ncol > 5:
+                valuefontsize=valuefontsize-2
+            
             for cA in range(len(bars)):
                 axbarsub = fig.add_subplot(axbar[0, cA])    
-                barsubplot(values = bars[cA].values, scale = bars[cA].scale, ax = axbarsub, colorscale = None, biggerisbetter = bars[cA].biggerisbetter, labels = bars[cA].labels, units = bars[cA].unit, title = bars[cA].title, plotvalue = True, alternatelabelsat=alternatelabelsat)
+                barsubplot(values = bars[cA].values, scale = bars[cA].scale, ax = axbarsub, colorscale = None, biggerisbetter = bars[cA].biggerisbetter, labels = bars[cA].labels, units = bars[cA].unit, title = bars[cA].title, plotvalue = True, alternatelabelsat=alternatelabelsat, axfontsize=axfontsize, labelfontsize=labelfontsize, valuefontsize=valuefontsize)
             
-        
+        if fileout != None:
+            matplotlib.pyplot.savefig(fileout, dpi=90, transparent=False, bbox_inches=None, pad_inches=0.1, metadata=None)
+            
         matplotlib.pyplot.show()
 
+
+def pthreepipe(EEG):
+    OUTEEG = copy.deepcopy(EEG)
+    OUTEEG = simplefilter(OUTEEG, Design = 'savitzky-golay', Order = 6)
+    #OUTEEG.acceptedtrials = len([v for i,v in enumerate(OUTEEG.reject) if v == 0])
+    
+    # creates a stimulus locked model ERP.
+    [outsum, outvect, xtime] = createsignal(
+         Window = [-0.1, 1.0],
+         Latency =   [ 0.08,  0.25, 0.35],
+         Amplitude = [-0.1,  -0.45, 0.50],
+         Width =     [40,       80,  180],
+         Shape =     [0,         0,    0],
+         Smoothing = [0,         0,    0],
+         OverallSmooth = 20, 
+         Srate = 250.0)
+    
+    #OUTEEG = voltagethreshold(OUTEEG, Threshold = [-100.0, 100.0], Step = 50.0)
+    OUTEEG = antiphasedetection(OUTEEG, Threshold=0.0, Window = [0.200, 0.800], Channel=['CZ', 'CPZ', 'PZ', 'POZ', 'P3', 'P4', 'CP3', 'CP4', 'C3', 'C4'], Template=outsum[closestidx(xtime, 0.200):closestidx(xtime, 0.800)])
+    OUTEEG = antiphasedetection(OUTEEG, Threshold=0.0, Window = [0.200, 0.800], Channel=['CZ', 'CPZ', 'PZ', 'POZ', 'P3', 'P4', 'CP3', 'CP4', 'C3', 'C4'])
+    #OUTEEG = voltagethreshold(OUTEEG, Threshold = [-100.0, 100.0], Step = 50.0)
+    #OUTEEG = netdeflectiondetection(OUTEEG, Threshold=-10, Direction='negative', Window = [0.200, 0.800],Channel=['CZ', 'CPZ', 'PZ', 'P3', 'P4', 'CP3', 'CP4', 'C3', 'C4'])
+    if OUTEEG.acceptedtrials == 0:
+        OUTEEG.reject = [0] * len(OUTEEG.reject)
+        
+    return OUTEEG
+
+def ernpipe(EEG):
+    OUTEEG = copy.deepcopy(EEG)
+    OUTEEG =simplefilter(OUTEEG, Design = 'savitzky-golay', Order = 6)
+    #OUTEEG.acceptedtrials = len([v for i,v in enumerate(OUTEEG.reject) if v == 0])
+    
+    [outsum, outvect, xtime] = createsignal(
+         Window =    [-0.500,  1.0],
+         Latency =   [-0.10, 0.15],
+         Amplitude = [-0.5, 0.25],
+         Width =     [100,   180],
+         Shape =     [0,    0],
+         Smoothing = [0,    0],
+         OverallSmooth = 20, 
+         Srate = 250.0)
+    
+    #EEGresp = voltagethreshold(EEGresp, Threshold = [-100.0, 100.0], Step = 50.0)
+    OUTEEG = antiphasedetection(OUTEEG, Threshold=0.0, Window = [-0.250, 0.200], Channel=['FZ', 'FC1', 'FC2', 'CZ'], Template=outsum[closestidx(xtime, -0.250):closestidx(xtime, 0.200)])
+    OUTEEG = antiphasedetection(OUTEEG, Threshold=0.0, Window = [-0.250, 0.200], Channel=['FZ', 'FC1', 'FC2', 'CZ'])
+    #OUTEEG2 = netdeflectiondetection(OUTEEG, Threshold=10, Direction='positive', Window = [-0.250, 0.200],Channel=['FZ', 'FC1', 'FC2', 'CZ'])
+    if OUTEEG.acceptedtrials == 0:
+        OUTEEG.reject = [0] * len(OUTEEG.reject)
+        
+    return OUTEEG
 
     
 # # # # #
