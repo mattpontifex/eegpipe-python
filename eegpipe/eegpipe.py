@@ -1451,6 +1451,45 @@ def msdatefromref(date1, date2):
 def closestidx(lst, K):
     return numpy.argmin(abs(numpy.subtract(lst, K)))
 
+def saferesample(invect, insample, outsample):
+    whatamiworkingwith = 'vector'
+    if len(invect) > 0:    
+        try:
+            if len(invect[0]) > 0:
+                whatamiworkingwith = 'matrix'
+        except:
+            pass
+    cPoints =  -1
+    if whatamiworkingwith == 'vector':
+        secofdata = numpy.divide(len(invect),insample)
+        cPoints = len(invect)
+    else:
+        secofdata = numpy.divide(len(invect[0]),insample)
+        cPoints = len(invect[0])
+    intime = numpy.linspace(0, secofdata, num=int(numpy.floor(numpy.multiply(secofdata, insample))))
+    insamples = numpy.linspace(0, cPoints, num=int(numpy.floor(numpy.multiply(secofdata, insample))))
+    outtime = numpy.linspace(0, secofdata, num=int(numpy.floor(numpy.multiply(secofdata, outsample))))
+    outsamples = numpy.linspace(0, cPoints, num=int(numpy.floor(numpy.multiply(secofdata, outsample))))
+    if whatamiworkingwith == 'vector':
+        outvect = [numpy.nan] * len(outtime)
+        for  cP in range(0, len(outtime)):
+            timindx = closestidx(intime, outtime[cP])
+            outvect[cP] = invect[timindx]
+    else:
+        outvect =  []
+        for cC in range(0, len(invect)):
+            outvectloc = [numpy.nan] * len(outtime)
+            for  cP in range(0, len(outtime)):
+                timindx = closestidx(intime, outtime[cP])
+                outvectloc[cP] = invect[cC][timindx]
+            outvect.append(outvectloc)  
+    output = {'data'          : outvect, 
+              'intime'        : intime, 
+              'insamples'     : insamples,
+              'outtime'       : outtime, 
+              'outsamples'    : outsamples}
+    return output
+
 
 ################################################################################################################################################
 ################################################################################################################################################
@@ -1713,8 +1752,9 @@ def correctEyeTribe(EEG, Correction=False):
     
     return OUTEEG
 
-def readCurry(inputfile, merge=True, resample=False, debug=False):        
+def readCurry(inputfile, merge=True, resample=False, approach=False, debug=False):        
     # function to read in data from NeuroscanCurry
+    approach = checkdefaultsettings(approach, ['scipy', 'safe'])
     
     # create structure
     EEG = eeglabstructure()
@@ -1744,14 +1784,22 @@ def readCurry(inputfile, merge=True, resample=False, debug=False):
                 EEG.channels.append(currydata['labels'][cchan].translate({ord(c): None for c in string.whitespace}))
                 EEG.data.append(currydata['data'][:, cchan])
             
-            if resample:
-                secofdata = numpy.divide(EEG.pnts,EEG.srate)
-                EEG.samples = numpy.linspace(0, EEG.pnts, num=int(numpy.floor(numpy.multiply(secofdata, float(resample)))))
-                EEG.times = numpy.multiply(list(range(0, len(EEG.samples))), numpy.divide(1.0, float(resample)))   
-                for cchan in range(0, EEG.nbchan):
-                    EEG.data[cchan] = scipy.signal.resample(EEG.data[cchan], len(EEG.samples))
-                EEG.srate = float(resample)
-                EEG.pnts = len(EEG.samples)
+            if EEG.pnts > 0:
+                if resample:
+                    if approach == 'scipy':
+                        secofdata = numpy.divide(EEG.pnts,EEG.srate)
+                        EEG.samples = numpy.linspace(0, EEG.pnts, num=int(numpy.floor(numpy.multiply(secofdata, float(resample)))))
+                        EEG.times = numpy.multiply(list(range(0, len(EEG.samples))), numpy.divide(1.0, float(resample)))   
+                        for cchan in range(0, EEG.nbchan):
+                            EEG.data[cchan] = scipy.signal.resample(EEG.data[cchan], len(EEG.samples))
+                    else:
+                        outdat = saferesample(EEG.data, EEG.srate, float(resample))
+                        EEG.data = outdat['data']
+                        EEG.samples = outdat['outsamples']
+                        EEG.times = outdat['outtime']
+                        
+                    EEG.srate = float(resample)
+                    EEG.pnts = len(EEG.samples)
         
             EEG.events = [[0]*EEG.pnts]
             EEG.eventsegments = ['Type']
@@ -1766,13 +1814,14 @@ def readCurry(inputfile, merge=True, resample=False, debug=False):
             
             if debug:
                 print('merging behavior')   
-            # see if there is behavioral data available
-            if (os.path.isfile(head + os.path.sep + tail.split('.')[0] + '.psydat')): 
-                if merge:
-                    try:
-                        EEG = mergetaskperformance(EEG, head + os.path.sep + tail.split('.')[0] + '.psydat')
-                    except:
-                        pass
+            if EEG.pnts > 0:
+                # see if there is behavioral data available
+                if (os.path.isfile(head + os.path.sep + tail.split('.')[0] + '.psydat')): 
+                    if merge:
+                        try:
+                            EEG = mergetaskperformance(EEG, head + os.path.sep + tail.split('.')[0] + '.psydat')
+                        except:
+                            pass
         else:
             EEG = None
     else:
@@ -4648,31 +4697,95 @@ def testrun():
         
         
 def purplecrush(mapsize=False, flip=False):
-    
     if mapsize == False:
         mapsize = 256
-        
+    if mapsize < 7:
+        mapsize = 7
     segs = ['#F593FA', '#9F71E3', '#7729F0', '#350C8F','#23248F', '#1C2C75', '#00004B'] 
-    
     if flip:
         segs.reverse()
-    
+    newcmap = LinearSegmentedColormap.from_list("", segs, mapsize) 
+    return newcmap
+
+def blueburst(mapsize=False, flip=False):
+    if mapsize == False:
+        mapsize = 256
+    if mapsize < 9:
+        mapsize = 9
+    segs = ['#666C70', # darker gray
+            '#687178', # dark gray
+            '#687178', # dark gray
+            '#687178', # dark gray
+            '#B3B3B3', # 30%
+            '#D1D3D4', # light gray
+            '#09A0FF', # medium blue
+            '#06BBFF', # medium blue
+            '#00FFFF'] # light blue
+    if flip:
+        segs.reverse()
+    newcmap = LinearSegmentedColormap.from_list("", segs, mapsize) 
+    return newcmap
+
+def orangeburst(mapsize=False, flip=False):
+    if mapsize == False:
+        mapsize = 256
+    if mapsize < 9:
+        mapsize = 9
+    segs = ['#666C70', # darker gray
+            '#687178', # dark gray
+            '#687178', # dark gray
+            '#687178', # dark gray
+            '#B3B3B3', # 30%
+            '#D1D3D4', # light gray
+            '#f65f00', # medium orange
+            '#f94400', # medium orange
+            '#ff0000'] # light red
+    if flip:
+        segs.reverse()
     newcmap = LinearSegmentedColormap.from_list("", segs, mapsize) 
     
     return newcmap
         
+def blueband(mapsize=False, flip=False):
+    if mapsize == False:
+        mapsize = 256
+    if mapsize < 7:
+        mapsize = 7
+    segs = ['#666C70', # darker gray
+            '#687178', # dark gray
+            '#687178', # dark gray
+            '#B3B3B3', # 30%
+            '#D1D3D4', # light gray
+            '#1292c5', # lighter blue
+            '#0d6f96'] # blue
+    if flip:
+        segs.reverse()
+    newcmap = LinearSegmentedColormap.from_list("", segs, mapsize) 
+    return newcmap
+def orangeband(mapsize=False, flip=False):
+    if mapsize == False:
+        mapsize = 256
+    if mapsize < 7:
+        mapsize = 7
+    segs = ['#666C70', # darker gray
+            '#687178', # dark gray
+            '#687178', # dark gray
+            '#B3B3B3', # 30%
+            '#D1D3D4', # light gray
+            '#f29069', # lighter orange
+            '#ed6d3a'] # orange
+    if flip:
+        segs.reverse()
+    newcmap = LinearSegmentedColormap.from_list("", segs, mapsize) 
+    return newcmap
+
 if __name__ == "__main__":
-    
-    
         
         Channels = ['FPZ', 'F3', 'FZ', 'F4', 'T7', 'C3', 'CZ', 'C4', 'T8', 'P7', 'P3', 'PZ', 'P4', 'P8', 'OZ']
         Amplitude = [0, 3, 3, 1, 0, 7, 5, 4, 0, 2, 7, 8, 2, 2, 0]
         
-        segs = ['#F593FA', '#9F71E3', '#7729F0', '#350C8F','#23248F', '#1C2C75', '#00004B'] 
-        newcmap = LinearSegmentedColormap.from_list("", segs, 256) 
-        
-        eggheadplot([Channels], [Amplitude], Steps=512, Scale = [1, 9], TickValues=False, Colormap=newcmap, 
-                    BrainOpacity = 0.2, Pad=True, Contours=True, Title =['Egghead'], debug=False)
+        eggheadplot([Channels], [Amplitude], Steps=512, Scale = [1, 9], TickValues=False, Colormap=blueband(512), 
+                    BrainOpacity = 0.2, Pad=True, Contours=False, Title =['Egghead'], debug=False)
     
     
     
