@@ -5,6 +5,7 @@ import os
 import copy 
 import string
 import math
+import time
 import numpy
 numpy.seterr(divide='ignore', invalid='ignore')
 import pickle
@@ -1600,7 +1601,7 @@ def loadset(inputfile):
     
     
 
-def readEyeTribe(inputfile):
+def readEyeTribe(inputfile, merge=False):
     # function to read in pupillary data from the EyeTribe eye tracker
     
     head, tail = os.path.split(inputfile)
@@ -1723,8 +1724,9 @@ def readEyeTribe(inputfile):
         EEG.checkset()
         
         # see if there is behavioral data available
-        if (os.path.isfile(head + os.path.sep + tail.split('.')[0] + '.psydat')): 
-            EEG = mergetaskperformance(EEG, head + os.path.sep + tail.split('.')[0] + '.psydat')
+        if merge:
+            if (os.path.isfile(head + os.path.sep + tail.split('.')[0] + '.psydat')): 
+                EEG = mergetaskperformance(EEG, head + os.path.sep + tail.split('.')[0] + '.psydat')
     
         return EEG
     
@@ -2486,7 +2488,8 @@ def simplefilter(EEG, Filter=False, Design=False, Cutoff=False, Order=False, Win
             if len(nans) > 0:
                 # restore missing data
                 filtdata[nans] = numpy.nan
-            OUTEEG.data[i] = copy.deepcopy(numpy.ndarray.tolist(filtdata))
+            #OUTEEG.data[i] = copy.deepcopy(numpy.ndarray.tolist(filtdata))
+            OUTEEG.data[i] = numpy.ndarray.tolist(filtdata)
      
             
     elif Design in ['savitzky-golay', 'savgol']:   
@@ -2519,7 +2522,8 @@ def simplefilter(EEG, Filter=False, Design=False, Cutoff=False, Order=False, Win
             if len(nans) > 0:
                 # restore missing data
                 filtdata[nans] = numpy.nan
-            OUTEEG.data[i] = copy.deepcopy(numpy.ndarray.tolist(filtdata))
+            #OUTEEG.data[i] = copy.deepcopy(numpy.ndarray.tolist(filtdata))
+            OUTEEG.data[i] = numpy.ndarray.tolist(filtdata)
         
         
     elif Design in ['hanning', 'flat', 'hamming', 'bartlett', 'blackman']:
@@ -2554,7 +2558,8 @@ def simplefilter(EEG, Filter=False, Design=False, Cutoff=False, Order=False, Win
                         filtdata[nans] = numpy.nan
                 except:
                     pass
-                OUTEEG.data[i] = copy.deepcopy(numpy.ndarray.tolist(filtdata))
+                #OUTEEG.data[i] = copy.deepcopy(numpy.ndarray.tolist(filtdata))
+                OUTEEG.data[i] = numpy.ndarray.tolist(filtdata)
                 
             elif OUTEEG.trials > 0:
                 currentchan = []
@@ -2581,7 +2586,9 @@ def simplefilter(EEG, Filter=False, Design=False, Cutoff=False, Order=False, Win
                         pass
                     currentchan.append(numpy.ndarray.tolist(filtdata))
                         
-                OUTEEG.data[i] = copy.deepcopy(currentchan)
+                #OUTEEG.data[i] = copy.deepcopy(currentchan)
+                OUTEEG.data[i] = currentchan.copy()
+                #OUTEEG.data[i] = currentchan
         
         
     return OUTEEG
@@ -2723,9 +2730,10 @@ def epochtocontinous(EEG, skipreject=True):
     return OUTEEG
 
 
-def simpleepoch(EEG, Window=False, Types=False):
+def simpleepoch(EEG, Window=False, Types=False, debug=False):
     # Convert a continuous EEG dataset to epoched data by extracting data time locked to specified event types.
-
+    if debug:
+        tstart = time.process_time()
     OUTEEG = copy.deepcopy(EEG)
     stimlistvalue = [v for i,v in enumerate(OUTEEG.events[0]) if v > 0]
     stimlistindex = [i for i,v in enumerate(OUTEEG.events[0]) if v > 0]
@@ -2736,11 +2744,19 @@ def simpleepoch(EEG, Window=False, Types=False):
 
     if Window != False:
         
+        if debug:
+            print ('Prep Time since start: %.1f sec' % (time.process_time()-tstart))
+            tseg = time.process_time()
+            
         # figure out how big the span needs to be
         epochsamples = int(numpy.floor(numpy.multiply(numpy.divide(numpy.subtract(float(Window[1]),float(Window[0])),float(1.0)),OUTEEG.srate)))
         OUTEEG.times = numpy.arange(numpy.divide(Window[0],1.0), numpy.divide(Window[1],1.0),numpy.divide(1.0,OUTEEG.srate))
         epochindexmin = numpy.multiply(numpy.divide(Window[0],1.0), OUTEEG.srate)
         
+        if debug:
+            print ('Span size Time since start: %.1f sec; Time since last seg: %.1f sec' % ((time.process_time()-tstart), (time.process_time()-tseg)))
+            tseg = time.process_time()
+            
         # epoch data
         epochs = []
         for cC in range(OUTEEG.nbchan):
@@ -2769,10 +2785,15 @@ def simpleepoch(EEG, Window=False, Types=False):
                     currentepoch.append(activeepoch)
                     
             epochs.append(currentepoch)
+        
+        if debug:
+            print ('Epoch Time since start: %.1f sec; Time since last seg: %.1f sec' % ((time.process_time()-tstart), (time.process_time()-tseg)))
+            tseg = time.process_time()
             
         # first index will correspond with channel
         # second index will correspond with epoch
-        OUTEEG.data = copy.deepcopy(epochs)
+        #OUTEEG.data = copy.deepcopy(epochs)
+        OUTEEG.data = epochs.copy()
             
         # epoch event codes
         events = []     
@@ -2803,8 +2824,12 @@ def simpleepoch(EEG, Window=False, Types=False):
                     
             events.append(currentepoch)
         OUTEEG.events = copy.deepcopy(events)
+        #OUTEEG.events = events.copy()
         
-        
+        if debug:
+            print ('Events Time since start: %.1f sec; Time since last seg: %.1f sec' % ((time.process_time()-tstart), (time.process_time()-tseg)))
+            tseg = time.process_time()
+            
         samples = []
         for cE in range(len(stimlistvalue)):
             # if the event code is in the list of types to epoch
@@ -2828,7 +2853,13 @@ def simpleepoch(EEG, Window=False, Types=False):
                 activeepoch[0+epochindexstartadj:epochsamples-epochindexstopadj] = OUTEEG.samples[epochindexstart:epochindexstop]
         
                 samples.append(activeepoch)
+                
+        if debug:
+            print ('Samples Time since start: %.1f sec; Time since last seg: %.1f sec' % ((time.process_time()-tstart), (time.process_time()-tseg)))
+            tseg = time.process_time()
+            
         OUTEEG.samples = copy.deepcopy(samples)
+        #OUTEEG.samples = samples.copy()
         OUTEEG.pnts = len(OUTEEG.times)
         OUTEEG.trials = len(samples)
         OUTEEG.reject = [0] * OUTEEG.trials
@@ -3893,6 +3924,31 @@ def writeeegtofile(EEG, fileout):
         f.write('%s' % OUTEEG.channels[i])
         if (i < OUTEEG.nbchan-1): f.write(', ')
     f.write('\n')
+    
+    booltracker = False
+    try:
+        OUTEEG.eyetracking.distance
+        booltracker = True
+    except:
+        pass
+    if booltracker:
+        f.write('eyetrackingdistance = %f\n' % OUTEEG.eyetracking.distance)
+        f.write('eyetrackingaccuracyleftdegrees = %f\n' % OUTEEG.eyetracking.accuracyleftdegrees)
+        f.write('eyetrackingaccuracyleftpixels = %f\n' % OUTEEG.eyetracking.accuracyleftpixels)
+        f.write('eyetrackingprecisionleftpixels = %f\n' % OUTEEG.eyetracking.precisionleftpixels)
+        f.write('eyetrackingaccuracyrightdegrees = %f\n' % OUTEEG.eyetracking.accuracyrightdegrees)
+        f.write('eyetrackingaccuracyrightpixels = %f\n' % OUTEEG.eyetracking.accuracyrightpixels)
+        f.write('eyetrackingprecisionrightpixels = %f\n' % OUTEEG.eyetracking.precisionrightpixels)
+        
+    else:
+        f.write('eyetrackingdistance = %d\n')
+        f.write('eyetracking.accuracyleftdegrees = NaN\n')
+        f.write('eyetracking.accuracyleftpixels = NaN\n')
+        f.write('eyetracking.precisionleftpixels = NaN\n')
+        f.write('eyetracking.accuracyrightdegrees = NaN\n')
+        f.write('eyetracking.accuracyrightpixels = NaN\n')
+        f.write('eyetracking.precisionrightpixels = NaN\n')
+        
     f.write('points = %d\n' % OUTEEG.pnts)
     f.write('times = ')
     for i in range(OUTEEG.pnts):
@@ -3900,6 +3956,7 @@ def writeeegtofile(EEG, fileout):
         if (i < len(OUTEEG.times)-1): f.write(', ')
     f.write('\n')
     f.write('trials = %d\n' % OUTEEG.trials)
+    
     f.write('data:\n')
     f.write('Event, Time, Markers, Reject, ')
     for i in range(OUTEEG.nbchan):
